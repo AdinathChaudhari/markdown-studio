@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+
+# Regenerable test output: screenshots and the print PDF are written fresh by
+# tests/test_ui.py and the confirm pass. dist/ is NOT ignored — the built
+# single file is the deliverable.
+tests/artifacts/

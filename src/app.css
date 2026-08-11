@@ -1,0 +1,738 @@
+/* ============================================================================
+   app.css — the chrome. Toolbar, pane grid, gutter, outline, status bar,
+   drop overlay, help dialog, focus rings, print.
+
+   Everything reads a token from theme.css; the only literals here are opacity,
+   geometry and the modal scrim (see the note on ::backdrop).
+   ========================================================================= */
+
+/* --- reset ---------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--sans);
+  font-size: var(--fs-3);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  overflow: hidden;                    /* the page never scrolls; panes do    */
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+button, input, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+/* One ring, everywhere, on keyboard focus only. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* Thin scrollbars that follow the palette. */
+#editor, #editor-pane, #preview-pane, #outline {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+#editor::-webkit-scrollbar,
+#editor-pane::-webkit-scrollbar,
+#preview-pane::-webkit-scrollbar,
+#outline::-webkit-scrollbar { width: 11px; height: 11px; }
+#editor::-webkit-scrollbar-track,
+#editor-pane::-webkit-scrollbar-track,
+#preview-pane::-webkit-scrollbar-track,
+#outline::-webkit-scrollbar-track { background: transparent; }
+#editor::-webkit-scrollbar-thumb,
+#editor-pane::-webkit-scrollbar-thumb,
+#preview-pane::-webkit-scrollbar-thumb,
+#outline::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 3px solid transparent;
+  border-radius: 99px;
+  background-clip: content-box;
+}
+#editor:hover::-webkit-scrollbar-thumb,
+#preview-pane:hover::-webkit-scrollbar-thumb { background-clip: content-box; }
+
+/* --- app shell ------------------------------------------------------------ */
+
+#app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--bg);
+  isolation: isolate;
+}
+
+/* ============================================================================
+   Toolbar
+   ========================================================================= */
+
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 48px;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+  /* Narrow windows scroll the toolbar rather than wrapping it into two rows. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+#toolbar::-webkit-scrollbar { display: none; }
+
+.tb-group {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex: 0 0 auto;
+}
+.tb-right { margin-left: auto; }
+
+.tb-brand {
+  gap: var(--sp-2);
+  padding-right: var(--sp-2);
+  margin-right: var(--sp-1);
+  border-right: 1px solid var(--border);
+  color: var(--text);
+}
+.logo {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.brand-name {
+  font-size: var(--fs-2);
+  font-weight: 600;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+/* --- buttons -------------------------------------------------------------- */
+
+/* Ghost by default. Nine identically-weighted outlined pills read as a settings
+   panel, and made the segmented mode group a box inside a box; the verbs sit
+   flat until the pointer approaches, so the bar has exactly two boxes -- the
+   mode group and whichever toggle is pressed -- and the accent chip actually
+   reads as state. The border is transparent rather than absent so nothing
+   shifts by a pixel on hover. */
+#toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 30px;
+  padding: 5px 10px;
+  font-size: var(--fs-2);
+  font-weight: 500;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .13s ease, border-color .13s ease, color .13s ease;
+}
+#toolbar button:hover {
+  background: var(--bg-sunken);
+  border-color: var(--border);
+}
+#toolbar button:active { background: var(--bg-sunken); }
+#toolbar button:disabled {
+  opacity: .45;
+  cursor: default;
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Active / pressed: an accent chip. Works for #btn-outline and any toggle. */
+#toolbar button[aria-pressed="true"],
+#toolbar button.is-active {
+  color: var(--accent);
+  background: var(--accent-weak);
+  border-color: var(--accent-weak);
+}
+#toolbar button[aria-pressed="true"]:hover,
+#toolbar button.is-active:hover {
+  background: var(--accent-weak);
+  border-color: var(--accent);
+}
+
+#btn-help {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+#btn-help:hover { color: var(--text); }
+
+/* --- segmented mode group ------------------------------------------------- */
+
+#mode-group {
+  gap: 0;
+  padding: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+#toolbar #mode-group button {
+  min-height: 26px;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--text-dim);
+}
+#toolbar #mode-group button:hover {
+  color: var(--text);
+  background: var(--bg-sunken);
+  border-color: transparent;
+}
+#toolbar #mode-group button[aria-pressed="true"],
+#toolbar #mode-group button.is-active {
+  color: var(--accent);
+  background: var(--bg-elev);
+  border-color: var(--border);
+  box-shadow: inset 0 0 0 1px var(--accent-weak);
+}
+
+/* --- theme dot ------------------------------------------------------------ */
+
+.theme-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--text-dim);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+:root[data-theme="light"] .theme-dot { background: var(--warn); }
+:root[data-theme="dark"]  .theme-dot { background: var(--accent); }
+:root[data-theme="system"] .theme-dot {
+  background: linear-gradient(90deg, var(--text-dim) 0 50%, var(--bg-elev) 50% 100%);
+}
+#theme-label { font-variant-numeric: tabular-nums; }
+
+/* ============================================================================
+   Panes
+
+   `#panes` is a grid. #outline carries the `hidden` attribute, and a
+   display:none element is not a grid item at all, so the column count changes
+   with it -- hence the `:has()` variants below rather than one fixed template.
+   `--split` / `--split-rest` are the editor and reader columns, and they must
+   stay in `fr`. A PERCENTAGE grid track resolves against the whole grid content
+   box -- including the 232px outline column -- so a 57.2% editor put the divider
+   133px right of the pointer whenever the outline was open, drifting further the
+   further you dragged. `fr` distributes only what is left after the fixed
+   outline column and the auto gutter, which is the region app.js measures the
+   ratio over. `1fr`/`1fr` gives an even split until a drag says otherwise.
+   ========================================================================= */
+
+#panes {
+  --outline-w: 232px;
+  --split: 1fr;
+  --split-rest: 1fr;
+  display: grid;
+  grid-template-columns: minmax(0, var(--split)) auto minmax(0, var(--split-rest));
+  min-height: 0;
+  background: var(--bg);
+}
+#panes:has(> #outline:not([hidden])) {
+  grid-template-columns: var(--outline-w) minmax(0, var(--split)) auto minmax(0, var(--split-rest));
+}
+
+/* Edit: editor only. */
+#app[data-mode="edit"] #panes { grid-template-columns: minmax(0, 1fr); }
+#app[data-mode="edit"] #panes:has(> #outline:not([hidden])) {
+  grid-template-columns: var(--outline-w) minmax(0, 1fr);
+}
+#app[data-mode="edit"] #gutter,
+#app[data-mode="edit"] #preview-pane { display: none; }
+
+/* Read: preview only, centred by #preview's own max-width. */
+#app[data-mode="read"] #panes { grid-template-columns: minmax(0, 1fr); }
+#app[data-mode="read"] #panes:has(> #outline:not([hidden])) {
+  grid-template-columns: var(--outline-w) minmax(0, 1fr);
+}
+#app[data-mode="read"] #gutter,
+#app[data-mode="read"] #editor-pane { display: none; }
+
+/* Fallback for engines without :has(): float the outline over the editor
+   instead of letting it steal the first grid column. */
+@supports not selector(:has(*)) {
+  #panes { position: relative; }
+  #outline:not([hidden]) {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--outline-w);
+    z-index: 3;
+    box-shadow: var(--shadow);
+  }
+}
+
+#editor-pane, #preview-pane {
+  min-width: 0;
+  min-height: 0;
+}
+
+#editor-pane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+  box-shadow: inset 2px 0 0 transparent;
+  transition: box-shadow .13s ease;
+}
+#editor-pane:focus-within { box-shadow: inset 2px 0 0 var(--accent); }
+
+#editor {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  display: block;
+}
+
+#preview-pane {
+  display: block;                      /* a scroll container, not a flex box */
+  background: var(--bg-elev);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--sp-5) var(--sp-5) 30vh;
+  scroll-padding-top: var(--sp-4);
+}
+#app[data-mode="read"] #preview-pane {
+  padding: var(--sp-6) var(--sp-5) 40vh;
+}
+/* With the outline open the reader's measure centres inside the LEFTOVER space,
+   which put it ~116px right of the window centre and read as visibly
+   off-centre. Balancing the outline column on the trailing side puts the
+   measure back on the window's midline. Only where there is room to spare:
+   below this width the column needs every pixel. */
+@media (min-width: 1000px) {
+  #app[data-mode="read"] #panes:has(> #outline:not([hidden])) > #preview-pane {
+    padding-inline-end: calc(var(--sp-5) + var(--outline-w));
+  }
+}
+#preview {
+  max-width: var(--maxw);
+  margin-inline: auto;
+}
+
+/* --- gutter --------------------------------------------------------------- */
+
+#gutter {
+  position: relative;
+  width: 11px;
+  cursor: col-resize;
+  background: transparent;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#gutter::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--border);
+  transition: background .13s ease, width .13s ease;
+}
+#gutter:hover::before,
+#gutter:focus-visible::before,
+#gutter[data-dragging]::before {
+  width: 3px;
+  background: var(--accent);
+}
+#gutter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+/* app.js adds this to <body> for the length of a gutter drag. Without it the
+   pointer flickered back to a text caret the moment it left the 11px gutter and
+   the drag selected the editor's text on the way past. */
+body.is-resizing { cursor: col-resize; }
+body.is-resizing * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ============================================================================
+   Outline
+   ========================================================================= */
+
+#outline {
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 var(--sp-2) var(--sp-6);
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+}
+/* #outline sets its own display, so the UA's [hidden] rule must be restated. */
+#outline[hidden] { display: none; }
+
+.outline-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--sp-3) var(--sp-2) var(--sp-2);
+  margin-bottom: var(--sp-1);
+  font-size: var(--fs-1);
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+#toc, #toc ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* Depth comes from the level ladder below and nowhere else: a nested-<ol>
+   padding on top of it compounds, so an h1 -> h3 (a skipped level) would indent
+   LESS than an h1 -> h2 -> h3 even though both are three deep. */
+#toc ol { padding-left: 0; }
+
+/* Indent by level. app.js writes both data-level and .lvl-N; .level-N is kept
+   as a third spelling. All feed one local --indent so only the padding rule
+   knows about it. */
+#toc li { --indent: 0px; }
+#toc li[data-level="2"], #toc li.lvl-2, #toc li.level-2 { --indent: var(--sp-3); }
+#toc li[data-level="3"], #toc li.lvl-3, #toc li.level-3 { --indent: var(--sp-5); }
+#toc li[data-level="4"], #toc li.lvl-4, #toc li.level-4 { --indent: 36px; }
+#toc li[data-level="5"], #toc li.lvl-5, #toc li.level-5 { --indent: 48px; }
+#toc li[data-level="6"], #toc li.lvl-6, #toc li.level-6 { --indent: 60px; }
+
+#toc a {
+  display: block;
+  padding: 4px var(--sp-2);
+  padding-left: calc(var(--sp-2) + var(--indent));
+  font-size: var(--fs-2);
+  line-height: 1.35;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-radius: var(--radius);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background .13s ease, color .13s ease;
+}
+#toc a:hover { color: var(--text); background: var(--bg-sunken); }
+#toc li[data-level="1"] > a, #toc li.lvl-1 > a, #toc li.level-1 > a {
+  font-weight: 600;
+  color: var(--text);
+}
+#toc a.is-active,
+#toc li.is-active > a,
+#toc a[aria-current] {
+  color: var(--accent);
+  background: var(--accent-weak);
+  font-weight: 600;
+}
+
+/* ============================================================================
+   Status bar
+   ========================================================================= */
+
+#statusbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  min-height: 28px;
+  padding: 4px var(--sp-3);
+  font-size: var(--fs-1);
+  color: var(--text-dim);
+  background: var(--bg-sunken);
+  border-top: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+}
+#status-name {
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The stats are the only expendable child: #status-name identifies the document
+   and #status-msg is the app's ONLY error channel -- "binary file", "too large",
+   "clipboard blocked", "autosave off" all land there. Unprioritised, the stats
+   ate 290px of a 680px bar and truncated a 69-character warning. */
+#status-stats {
+  font-variant-numeric: tabular-nums;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#status-msg {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  text-align: right;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#status-msg:empty { display: none; }
+#status-msg[data-kind="error"] { color: var(--danger); }
+#status-msg[data-kind="warn"]  { color: var(--warn); }
+#status-msg[data-kind="ok"]    { color: var(--ok); }
+
+/* ============================================================================
+   Drop overlay
+   ========================================================================= */
+
+#drop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-6);
+}
+#drop[hidden] { display: none; }        /* id beats the UA [hidden] rule      */
+#drop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: .84;
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.drop-card {
+  position: relative;
+  z-index: 1;
+  padding: var(--sp-6) calc(var(--sp-6) * 2);
+  font-size: var(--fs-5);
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  background: var(--bg-elev);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  animation: drop-in .16s ease-out;
+}
+@keyframes drop-in {
+  from { opacity: 0; transform: scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============================================================================
+   Help dialog
+   ========================================================================= */
+
+#help {
+  width: min(560px, calc(100vw - var(--sp-6) * 2));
+  max-height: min(80vh, 640px);
+  padding: var(--sp-5);
+  color: var(--text);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: auto;
+}
+/* ::backdrop only inherits custom properties from its originating element in
+   newer engines, so a token here would resolve differently per browser. A
+   single neutral scrim is the honest choice; it suits both palettes. */
+#help::backdrop {
+  background: rgb(10 11 14 / .48);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+#help h2 {
+  margin: 0 0 var(--sp-4);
+  font-size: var(--fs-5);
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+#help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-2);
+}
+#help-table td, #help-table th {
+  padding: 6px var(--sp-2);
+  text-align: left;
+  vertical-align: baseline;
+  border-bottom: 1px solid var(--border);
+}
+#help-table tr:last-child td { border-bottom: 0; }
+/* The key column shrink-wraps so the description gets the room. */
+#help-table td:first-child, #help-table th:first-child {
+  width: 1%;
+  padding-left: 0;
+  white-space: nowrap;
+}
+#help-table td:last-child { padding-right: 0; }
+#help-table kbd, #help kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 2px 6px;
+  font-family: var(--mono);
+  font-size: var(--fs-1);
+  line-height: 1.4;
+  text-align: center;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+}
+#help footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--sp-5);
+}
+#help footer button {
+  min-height: 30px;
+  padding: 5px 14px;
+  font-size: var(--fs-2);
+  font-weight: 550;
+  color: var(--accent-text);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+#help footer button:hover { filter: brightness(1.08); }
+
+/* ============================================================================
+   Narrow windows — the toolbar sheds labels before it sheds controls.
+   ========================================================================= */
+
+@media (max-width: 900px) {
+  .brand-name { display: none; }
+  #panes { --outline-w: 200px; }
+}
+@media (max-width: 720px) {
+  #theme-label { display: none; }
+  #toolbar { gap: var(--sp-2); }
+  .tb-brand { border-right: 0; padding-right: 0; margin-right: 0; }
+  #preview-pane,
+  #app[data-mode="read"] #preview-pane { padding-inline: var(--sp-4); }
+  /* The message needs the whole bar at this width; the counts do not. */
+  #status-stats { display: none; }
+}
+
+/* Below ~700px a split gives two ~230px columns: the editor wraps prose after
+   three words and the reader after five, so the same paragraph is read twice in
+   two unreadable measures. Collapse to the reader and leave the STORED
+   preference alone, so widening the window brings the split straight back. */
+@media (max-width: 700px) {
+  #app[data-mode="split"] #panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #app[data-mode="split"] #panes:has(> #outline:not([hidden])) {
+    grid-template-columns: var(--outline-w) minmax(0, 1fr);
+  }
+  #app[data-mode="split"] #editor-pane,
+  #app[data-mode="split"] #gutter { display: none; }
+}
+
+/* Below ~560px the eleven controls need 700px of row. Wrapping is the only
+   option that sheds nothing: scrolling them behind `scrollbar-width: none` put
+   four controls -- including the theme toggle and the help button -- off-screen
+   with nothing on screen to say they were there, and sliced the Outline button
+   mid-word, which reads as a broken layout rather than as "scroll me". */
+@media (max-width: 560px) {
+  #toolbar {
+    flex-wrap: wrap;
+    row-gap: var(--sp-2);
+    overflow-x: visible;
+  }
+  .tb-right { margin-left: 0; }
+}
+
+/* ============================================================================
+   Reduced motion — keep the state changes, drop the movement.
+   ========================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================================
+   Print — one clean document: no chrome, no editor, full width, free-flowing.
+   Palette is forced light by theme.css's own @media print block.
+   ========================================================================= */
+
+@page { margin: 18mm 16mm; }
+
+@media print {
+  html, body {
+    height: auto;
+    overflow: visible;
+    background: var(--bg);
+  }
+
+  #toolbar,
+  #statusbar,
+  #outline,
+  #gutter,
+  #editor-pane,
+  #drop,
+  #help { display: none !important; }
+
+  #app {
+    display: block;
+    height: auto;
+    background: var(--bg);
+  }
+
+  /* Every mode prints the reader. */
+  #panes,
+  #app[data-mode="edit"] #panes,
+  #app[data-mode="read"] #panes,
+  #app[data-mode="split"] #panes {
+    display: block;
+    overflow: visible;
+  }
+
+  #preview-pane,
+  #app[data-mode="edit"] #preview-pane,
+  #app[data-mode="read"] #preview-pane {
+    display: block;
+    overflow: visible;
+    padding: 0;
+    background: var(--bg);
+  }
+
+  #preview {
+    max-width: none;
+    margin: 0;
+  }
+}

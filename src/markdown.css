@@ -1,0 +1,641 @@
+/* ============================================================================
+   markdown.css — typography of the rendered document (#preview.markdown-body),
+   the editor textarea's own type, and ::selection.
+
+   Class names markdown.js / app.js may emit are matched generously, because the
+   renderer is free to pick any of the usual spellings: heading anchors are
+   `.md-anchor`, code-copy buttons are matched as `.md-copy`, `.md-code-copy`,
+   `.copy-btn`, `[data-copy]` or a bare `button` inside the block, and tables
+   work whether or not they carry `.md-table`.
+   ========================================================================= */
+
+/* --- selection ------------------------------------------------------------ */
+
+::selection {
+  background: var(--sel);
+  color: var(--text);
+}
+
+/* ============================================================================
+   The editor
+   ========================================================================= */
+
+#editor {
+  padding: var(--sp-5) var(--sp-5) 40vh;
+  font-family: var(--mono);
+  font-size: var(--fs-3);
+  line-height: 1.68;
+  tab-size: 2;
+  -moz-tab-size: 2;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: none;                       /* the pane's inset edge shows focus  */
+  resize: none;                        /* no drag handle in a pane layout    */
+  overflow: auto;                      /* the textarea owns its own scroll   */
+  caret-color: var(--accent);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: auto;
+}
+#editor::placeholder {
+  color: var(--text-dim);
+  opacity: .75;
+}
+@media (max-width: 720px) {
+  #editor { padding-inline: var(--sp-4); }
+}
+
+/* ============================================================================
+   Document base
+   ========================================================================= */
+
+.markdown-body {
+  font-family: var(--sans);
+  font-size: var(--fs-3);
+  line-height: 1.7;
+  color: var(--text);
+  overflow-wrap: break-word;
+  font-variant-numeric: tabular-nums lining-nums;
+  text-underline-offset: 2px;
+}
+/* Reader mode gets the larger measure. Add data-font="serif" on #preview for
+   the optional serif reading face; the sans stack stays the default. */
+#app[data-mode="read"] .markdown-body { font-size: var(--fs-4); }
+.markdown-body[data-font="serif"] { font-family: var(--serif); }
+
+.markdown-body > :first-child { margin-top: 0; }
+.markdown-body > :last-child { margin-bottom: 0; }
+
+.markdown-body p { margin: 0 0 1.05em; }
+
+.markdown-body strong { font-weight: 650; }
+.markdown-body em { font-style: italic; }
+.markdown-body del, .markdown-body s { color: var(--text-dim); }
+
+.markdown-body mark, .markdown-body .md-mark {
+  padding: .06em .22em;
+  color: var(--text);
+  background: var(--mark);
+  border-radius: 3px;
+}
+
+.markdown-body abbr[title] {
+  text-decoration: underline dotted var(--border-strong);
+  cursor: help;
+}
+
+.markdown-body small { font-size: var(--fs-2); color: var(--text-dim); }
+
+/* ============================================================================
+   Headings — a clear ramp, with a hairline under h1/h2 only.
+   ========================================================================= */
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  position: relative;
+  margin: 1.9em 0 .62em;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -.011em;
+  color: var(--text);
+  scroll-margin-top: var(--sp-4);
+}
+
+.markdown-body h1 {
+  margin-top: 0;
+  font-size: var(--fs-7);
+  font-weight: 700;
+  letter-spacing: -.022em;
+  padding-bottom: .28em;
+  border-bottom: 1px solid var(--border);
+}
+/* No rule here. h1 AND h2 both carrying a hairline striped every real document
+   -- three horizontal lines in one screen, competing with the <hr> gradient a
+   few paragraphs down. The size ramp and the extra space above carry the
+   hierarchy; the h1's rule stays as the document's only horizontal line. */
+.markdown-body h2 {
+  margin-top: 2.3em;
+  font-size: var(--fs-6);
+  letter-spacing: -.017em;
+}
+.markdown-body h3 { font-size: var(--fs-5); }
+.markdown-body h4 { font-size: var(--fs-4); }
+.markdown-body h5 { font-size: var(--fs-3); }
+.markdown-body h6 {
+  font-size: var(--fs-2);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.markdown-body h1 + h2,
+.markdown-body h2 + h3,
+.markdown-body h3 + h4 { margin-top: 1.1em; }
+
+/* Heading anchor: hangs in the left margin, invisible until the heading is
+   hovered or the link itself is focused. `:empty` covers a renderer that emits
+   an anchor with no text of its own. */
+.markdown-body .md-anchor {
+  position: absolute;
+  left: -.85em;
+  top: 0;
+  width: .8em;
+  font-weight: 400;
+  color: var(--text-dim);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity .13s ease, color .13s ease;
+}
+.markdown-body .md-anchor:empty::before { content: "#"; }
+.markdown-body h1:hover .md-anchor,
+.markdown-body h2:hover .md-anchor,
+.markdown-body h3:hover .md-anchor,
+.markdown-body h4:hover .md-anchor,
+.markdown-body h5:hover .md-anchor,
+.markdown-body h6:hover .md-anchor,
+.markdown-body .md-anchor:focus-visible { opacity: 1; }
+.markdown-body .md-anchor:hover { color: var(--accent); }
+
+/* ============================================================================
+   Links
+   ========================================================================= */
+
+.markdown-body a {
+  color: var(--accent);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--accent);
+  transition: text-decoration-thickness .1s ease;
+}
+.markdown-body a:hover { text-decoration-thickness: 2px; }
+.markdown-body a:visited { color: var(--accent); }
+.markdown-body a code { color: inherit; }
+
+/* ============================================================================
+   Lists
+   ========================================================================= */
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0 0 1.05em;
+  padding-left: 1.5em;
+}
+.markdown-body li { margin: .28em 0; }
+.markdown-body li > ul,
+.markdown-body li > ol { margin: .3em 0 .35em; }
+.markdown-body li::marker { color: var(--text-dim); }
+/* Loose lists: the renderer wraps items in <p>. Keep the rhythm tight inside. */
+.markdown-body li > p { margin: 0 0 .55em; }
+.markdown-body li > p:last-child { margin-bottom: 0; }
+
+/* Task lists — checkbox sits on the text baseline, bullet removed. */
+.markdown-body li.task-list-item,
+.markdown-body li.md-task {
+  list-style: none;
+  margin-left: -1.35em;
+  padding-left: 1.35em;
+}
+/* Kept as its own rule: an engine without :has() drops the whole rule it
+   appears in, and the class-based fallback above must survive that. */
+.markdown-body li:has(> input[type="checkbox"]),
+.markdown-body li:has(> p > input[type="checkbox"]:first-child) {
+  list-style: none;
+  margin-left: -1.35em;
+  padding-left: 1.35em;
+}
+.markdown-body li input[type="checkbox"] {
+  width: 1em;
+  height: 1em;
+  margin: 0 .45em 0 -1.35em;
+  vertical-align: -.1em;
+  accent-color: var(--accent);
+}
+.markdown-body li input[type="checkbox"]:disabled { opacity: 1; }
+.markdown-body li input[type="checkbox"]:checked + * { color: var(--text-dim); }
+
+/* Definition lists (raw HTML passes straight through). */
+.markdown-body dl { margin: 0 0 1.05em; }
+.markdown-body dt { font-weight: 650; margin-top: .7em; }
+.markdown-body dd { margin: .2em 0 0 1.3em; color: var(--text-dim); }
+
+/* ============================================================================
+   Blockquotes
+   ========================================================================= */
+
+.markdown-body blockquote {
+  margin: 1.3em 0;
+  padding: .1em 0 .1em var(--sp-4);
+  color: var(--text-dim);
+  border-left: 3px solid var(--accent);
+}
+.markdown-body blockquote > :last-child { margin-bottom: 0; }
+.markdown-body blockquote blockquote {
+  margin: .7em 0;
+  border-left-color: var(--border-strong);
+}
+.markdown-body blockquote cite {
+  display: block;
+  margin-top: .5em;
+  font-size: var(--fs-2);
+  font-style: normal;
+}
+
+/* ============================================================================
+   Code
+   ========================================================================= */
+
+.markdown-body code,
+.markdown-body kbd,
+.markdown-body samp {
+  font-family: var(--mono);
+  font-size: .885em;
+  font-variant-ligatures: none;
+}
+
+.markdown-body :not(pre) > code {
+  padding: .14em .36em;
+  color: var(--code-text);
+  background: var(--code-bg);
+  border-radius: 5px;
+  overflow-wrap: break-word;
+}
+
+.markdown-body kbd {
+  padding: .12em .4em;
+  color: var(--text);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+}
+
+/* The block itself is the positioning context for its copy button; a wrapper
+   is honoured too, whichever the renderer produced. */
+.markdown-body pre,
+.markdown-body .md-pre,
+.markdown-body .md-code,
+.markdown-body .md-code-wrap,
+.markdown-body .md-codeblock { position: relative; }
+
+.markdown-body pre {
+  margin: 1.3em 0;
+  padding: var(--sp-3) var(--sp-4);
+  font-size: var(--fs-2);
+  line-height: 1.58;
+  color: var(--code-text);
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  tab-size: 2;
+  -moz-tab-size: 2;
+}
+.markdown-body pre code {
+  display: block;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+/* Copy button: top-right, only on hover / keyboard focus inside the block. */
+.markdown-body .md-copy,
+.markdown-body .md-code-copy,
+.markdown-body .copy-btn,
+.markdown-body [data-copy],
+.markdown-body pre > button,
+.markdown-body .md-pre > button,
+.markdown-body .md-code-wrap > button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  padding: 3px 8px;
+  font-family: var(--sans);
+  font-size: var(--fs-1);
+  font-weight: 550;
+  line-height: 1.5;
+  color: var(--text-dim);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .13s ease, color .13s ease, border-color .13s ease;
+}
+.markdown-body pre:hover .md-copy,
+.markdown-body pre:hover .md-code-copy,
+.markdown-body pre:hover .copy-btn,
+.markdown-body pre:hover [data-copy],
+.markdown-body pre:hover > button,
+.markdown-body pre:focus-within .md-copy,
+.markdown-body pre:focus-within > button,
+.markdown-body .md-pre:hover .md-copy,
+.markdown-body .md-pre:hover > button,
+.markdown-body .md-code-wrap:hover .md-copy,
+.markdown-body .md-code-wrap:hover > button,
+.markdown-body .md-copy:focus-visible,
+.markdown-body .md-code-copy:focus-visible,
+.markdown-body .copy-btn:focus-visible,
+.markdown-body [data-copy]:focus-visible { opacity: 1; }
+
+.markdown-body .md-copy:hover,
+.markdown-body .md-code-copy:hover,
+.markdown-body .copy-btn:hover,
+.markdown-body [data-copy]:hover,
+.markdown-body pre > button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.markdown-body .md-copy.is-done,
+.markdown-body .copy-btn.is-done,
+.markdown-body [data-copy].is-done {
+  color: var(--ok);
+  border-color: var(--ok);
+  opacity: 1;
+}
+
+/* ============================================================================
+   Tables — the wrap scrolls so a wide table never widens the page.
+   ========================================================================= */
+
+.markdown-body .md-table-wrap {
+  margin: 1.35em 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.markdown-body .md-table-wrap > table,
+.markdown-body .md-table-wrap > .md-table { margin: 0; border: 0; }
+
+.markdown-body table,
+.markdown-body .md-table {
+  width: 100%;
+  margin: 1.35em 0;
+  font-size: var(--fs-2);
+  line-height: 1.5;
+  border-collapse: collapse;
+  border-spacing: 0;
+  background: var(--bg-elev);
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 7px var(--sp-3);
+  text-align: left;                    /* inline text-align from the         */
+  vertical-align: top;                 /* alignment row overrides this       */
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown-body thead th,
+.markdown-body th {
+  font-weight: 650;
+  color: var(--text);
+  white-space: nowrap;
+  background: var(--bg-sunken);
+  border-bottom: 1px solid var(--border-strong);
+}
+.markdown-body thead th { position: relative; }
+
+/* Zebra: one step down the elevation ladder, so it survives both palettes. */
+.markdown-body tbody tr:nth-child(even) > td { background: var(--bg); }
+.markdown-body tbody tr:last-child > td { border-bottom: 0; }
+.markdown-body tbody tr:hover > td { background: var(--accent-weak); }
+
+.markdown-body td > code { white-space: pre-wrap; }
+.markdown-body caption {
+  padding-bottom: var(--sp-2);
+  font-size: var(--fs-2);
+  color: var(--text-dim);
+  text-align: left;
+}
+
+/* ============================================================================
+   Rules, media, figures
+   ========================================================================= */
+
+.markdown-body hr {
+  height: 1px;
+  margin: var(--sp-6) 0;
+  border: 0;
+  background: linear-gradient(90deg,
+    transparent, var(--border) 12%, var(--border) 88%, transparent);
+}
+
+.markdown-body img,
+.markdown-body svg,
+.markdown-body video {
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  border-radius: var(--radius);
+}
+.markdown-body p > img:only-child { display: block; margin-inline: auto; }
+
+.markdown-body figure {
+  margin: 1.5em 0;
+  text-align: center;
+}
+.markdown-body figcaption {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-2);
+  color: var(--text-dim);
+}
+
+.markdown-body details {
+  margin: 1.2em 0;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.markdown-body summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+.markdown-body details[open] > summary { margin-bottom: var(--sp-3); }
+
+/* ============================================================================
+   Footnotes — small, dim, set apart by a rule.
+   ========================================================================= */
+
+.markdown-body .footnotes,
+.markdown-body .md-footnotes {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-4);
+  font-size: var(--fs-2);
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+}
+.markdown-body .footnotes h2,
+.markdown-body .md-footnotes h2,
+.markdown-body .footnotes h3,
+.markdown-body .md-footnotes h3 {
+  margin: 0 0 var(--sp-2);
+  padding: 0;
+  font-size: var(--fs-2);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-bottom: 0;
+}
+.markdown-body .footnotes ol,
+.markdown-body .md-footnotes ol { padding-left: 1.4em; }
+.markdown-body .footnotes li,
+.markdown-body .md-footnotes li { margin: .35em 0; }
+.markdown-body .footnotes li:target,
+.markdown-body .md-footnotes li:target {
+  background: var(--accent-weak);
+  border-radius: var(--radius);
+}
+
+.markdown-body sup, .markdown-body sub {
+  font-size: .74em;
+  line-height: 0;
+}
+.markdown-body .footnote-ref,
+.markdown-body .md-fnref,
+.markdown-body sup > a {
+  padding: 0 .1em;
+  text-decoration: none;
+  font-weight: 600;
+}
+.markdown-body .footnote-ref:hover,
+.markdown-body .md-fnref:hover,
+.markdown-body sup > a:hover { text-decoration: underline; }
+.markdown-body .footnote-backref,
+.markdown-body .md-fnback { text-decoration: none; }
+
+/* ============================================================================
+   Math (MathML Core from tex.js)
+   ========================================================================= */
+
+.markdown-body math {
+  /* var(--math) is load-bearing, not decoration: without a font carrying an
+     OpenType MATH table, \left( \right) and the matrix/cases fences do not
+     stretch to their content. See the token's note in theme.css. */
+  font-family: var(--math);
+  font-size: 1.12em;
+  color: inherit;
+}
+/* Display math. `display` is deliberately NOT set: the UA gives <math> an inner
+   `math` display, and forcing `display:block` here drops it back to normal
+   inline layout — measured, a long formula then WRAPPED like a paragraph.
+   Centring is `fit-content` + auto margins (the UA centres it too, but not
+   every engine does); the box still fills the column when the formula is wider
+   than it, so an over-long equation scrolls instead of widening the page. */
+.markdown-body math[display="block"] {
+  width: fit-content;
+  max-width: 100%;
+  margin: var(--sp-5) auto;
+  padding-block: var(--sp-1);
+  text-align: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.markdown-body .md-math-block {
+  display: block;
+  margin: var(--sp-5) 0;
+  text-align: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.markdown-body .md-math-block > math[display="block"] {
+  margin-block: 0;
+  overflow: visible;
+}
+.markdown-body math[display="inline"] { overflow: visible; }
+
+/* No math renderer supplied: the source shows as literal code. */
+.markdown-body .md-math-raw {
+  padding: .14em .36em;
+  font-family: var(--mono);
+  font-size: .885em;
+  color: var(--text-dim);
+  background: var(--code-bg);
+  border: 1px dashed var(--border-strong);
+  border-radius: 5px;
+}
+
+/* A formula tex.js could not parse: visible red source, never a blank page. */
+.markdown-body .md-math-error {
+  display: inline-block;
+  max-width: 100%;
+  padding: .1em .35em;
+  font-family: var(--mono);
+  font-size: .885em;
+  color: var(--danger);
+  background: var(--code-bg);
+  border: 1px solid var(--danger);
+  border-radius: 5px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+/* A command tex.js recognised but does not implement. */
+.markdown-body .md-tex-unknown {
+  color: var(--warn);
+  font-family: var(--mono);
+  font-size: .92em;
+  border-bottom: 1px dotted var(--warn);
+}
+
+/* ============================================================================
+   Print — remove the affordances, keep the document.
+   ========================================================================= */
+
+@media print {
+  .markdown-body {
+    font-size: 11pt;
+    line-height: 1.55;
+  }
+  .markdown-body h1 { font-size: 21pt; }
+  .markdown-body h2 { font-size: 16pt; }
+  .markdown-body h3 { font-size: 13pt; }
+  .markdown-body h4,
+  .markdown-body h5,
+  .markdown-body h6 { font-size: 11pt; }
+
+  .markdown-body .md-anchor,
+  .markdown-body .md-copy,
+  .markdown-body .md-code-copy,
+  .markdown-body .copy-btn,
+  .markdown-body [data-copy],
+  .markdown-body pre > button { display: none !important; }
+
+  .markdown-body a {
+    color: var(--text);
+    text-decoration-color: var(--border-strong);
+  }
+
+  .markdown-body pre,
+  .markdown-body blockquote,
+  .markdown-body .md-table-wrap,
+  .markdown-body table,
+  .markdown-body figure,
+  .markdown-body img,
+  .markdown-body math[display="block"] { break-inside: avoid; }
+
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4 { break-after: avoid; }
+
+  .markdown-body pre { white-space: pre-wrap; overflow: visible; }
+  .markdown-body .md-table-wrap { overflow: visible; }
+  .markdown-body tbody tr:hover > td { background: none; }
+}

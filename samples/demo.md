@@ -1,0 +1,284 @@
+![Markdown Studio][logo]
+
+# Markdown Studio
+
+One HTML file. No server, no CDN, no web font, no npm — open it from a USB stick
+on a plane and it still renders tables and mathematics. This document is both the
+manual and the visual test fixture, so every feature the renderer claims is
+exercised somewhere below. If something on this page looks wrong, something *is*
+wrong.
+
+Delete all of it and start writing whenever you like — your buffer is saved to
+this browser as you type[^autosave].
+
+## The three panes
+
+Press **Edit**, **Split** or **Read** in the toolbar, or cycle them with `⌘\`:
+
+- **Edit** — the source, full width.
+- **Split** — source and preview side by side, scroll-synced. Drag the divider.
+- **Read** — the rendered document alone, centred for actual reading.
+
+`⌘/` cycles light, dark and system themes. `?` shows every shortcut. The
+**Outline** button opens a table of contents built from the headings below.
+
+### Emphasis and the other inline marks
+
+*One asterisk* and _one underscore_ give italic; **two** and __two underscores__
+give bold; ***three*** give both. ~~Two tildes~~ strike text out and ==two equal
+signs== highlight it. Inline code is `like this`, and a span that needs to
+contain a backtick uses two: `` a ` b ``.
+
+A line that ends with two spaces  
+breaks without starting a new paragraph, and so does one ending in a backslash\
+like this one.
+
+#### Headings go all six levels deep
+
+##### Five, for a sub-point nobody will read
+
+###### And six, which is as deep as Markdown goes
+
+Setext headings work too
+------------------------
+
+That last heading was written by underlining it with dashes; `===` gives a level
+one instead. Handy when you paste from an older document.
+
+***
+
+## Lists
+
+A tight list — no blank lines between items, so no paragraph tags:
+
+- Reads a file you drop anywhere on the window
+- Saves it back under its own name
+- Never uploads anything
+
+A loose list — one blank line anywhere in it, and every item becomes a paragraph:
+
+1. **Open** a document.
+
+   Drag it in, press `⌘O`, or paste it.
+
+2. **Write** in the left pane.
+
+   The preview redraws about an eighth of a second after you stop typing, and
+   keeps its scroll position while it does.
+
+3. **Print** with `⌘P` to get a PDF with the chrome stripped out.
+
+Nesting is by indentation, and ordered lists keep whatever number you start at:
+
+- Block level
+  - headings, paragraphs, lists, quotes
+  - fenced and indented code
+  - tables and footnotes
+- Inline level
+  1. links, images, autolinks
+  2. emphasis, code spans, marks
+  3. maths, which is extracted first so `$a_1 * b$` keeps its underscore
+
+And task lists render as real, disabled checkboxes:
+
+- [x] CommonMark core
+- [x] GFM tables, task lists, strikethrough, bare-URL autolinks
+- [x] Footnotes and `==mark==`
+- [ ] Anything that would need a network request
+
+## Quoting other people
+
+> Markdown is not a replacement for HTML, or even close to it. Its syntax is
+very small, corresponding only to a very small subset of HTML tags.
+>
+> > The idea is that a Markdown-formatted document should be publishable as-is,
+> > as plain text, without looking like it's been marked up with tags
+> > or formatting instructions.
+>
+> — John Gruber, more or less
+
+Quotes nest, and the second line of that first paragraph carries no `>` at all —
+lazy continuation keeps it inside the quote anyway.
+
+## Code
+
+A fenced block with an info string becomes `<pre><code class="language-js">`, and
+gets a **Copy** button in the corner:
+
+```js
+// Every math span goes through one hook, so the renderer never knows about TeX.
+const html = MD.render(source, {
+  math: (tex, display) => TeX.toMathML(tex, display),
+  baseHeadingLevel: 1,
+});
+```
+
+Tildes fence just as well as backticks, which is the escape hatch when the code
+itself contains a triple backtick:
+
+~~~python
+def render(src: str) -> str:
+    """No dependencies here either."""
+    return md.render(src)
+~~~
+
+And four leading spaces still make a code block, the way they always did:
+
+    $ python3 build.py
+    built dist/markdown-studio.html (232.4 KB, no external requests)
+
+Note that the `$` in there stayed a dollar sign: a `$` inside code is never
+maths. Outside code, write `\$` for a literal one.
+
+## Links, HTML and footnotes
+
+An inline link to [the module contract](CONTRACT.md "the frozen seams"), a
+reference link to [the CommonMark spec][spec], an autolink in angle brackets
+<https://spec.commonmark.org/>, and a bare URL that GFM picks up on its own:
+https://daringfireball.net/projects/markdown/.
+
+Raw HTML passes straight through, because this is a reader for your own files:
+press <kbd>⌘S</kbd> to save, and H<sub>2</sub>O still needs its subscript. What
+does *not* pass through is a `javascript:` or hostile `data:` URL in a link —
+those are neutralised before they reach the page. Images stay allowed as
+`data:image/*`, which is how the logo at the top of this document ![ok][dot] is
+embedded without a single request leaving the machine.
+
+## Tables
+
+Three of them, because tables are where Markdown renderers usually fall over.
+
+A plain one, no alignment row decorations:
+
+| Button | Shortcut | What it does |
+| --- | --- | --- |
+| Open | `⌘O` | Read a `.md` file into the editor |
+| Save | `⌘S` | Write the buffer back out as a download |
+| Print | `⌘P` | Print the rendered pane only |
+| Outline | — | Toggle the heading index |
+
+One using all three alignments — left, centre, right — and wide enough that it
+has to scroll inside its own frame rather than pushing the page sideways:
+
+| Part | Where it lives | Ships? | Global it defines | Why it is written the way it is | Lines |
+| :--- | :--- | :-: | :--- | :--- | ---: |
+| Block parser | `src/markdown.js` | yes | `window.MD.render` | A line-oriented pass, because CommonMark decides block structure line by line, before any inline syntax matters | 1631 |
+| Inline parser | `src/markdown.js` | yes | `window.MD.outline` | Maths comes out first and goes back last, so `$a_1 * b$` never has its underscore eaten by emphasis | — |
+| TeX to MathML | `src/tex.js` | yes | `window.TeX.toMathML` | Every current browser renders MathML Core natively, which removes the last reason anyone shipped a 300 KB maths font | 1503 |
+| Default buffer | `src/default_doc.js` | yes | `window.DEFAULT_DOC` | Generated from `samples/demo.md` by `tools/gen_default_doc.py`, so this page and the fixture cannot drift apart | — |
+| Shell | `src/app.js` | yes | `window.__mdstudio` | Modes, themes, autosave, scroll sync and the keyboard map, each guarded so a disabled `localStorage` degrades instead of throwing | 1602 |
+| Network | nowhere | **no** | none | Deliberately unimplemented, and the one feature request that will always be declined | 0 |
+
+And one carrying the awkward cell contents — inline code, a link, an escaped
+pipe, and maths inside a cell:
+
+| Written | Renders as | Notes |
+| --- | :-: | --- |
+| `` `\|` `` | \| | Escape a pipe with a backslash or it splits the row |
+| `$e^{i\pi} + 1 = 0$` | $e^{i\pi} + 1 = 0$ | Maths works in a cell, as long as it holds no bare pipe |
+| `[spec][spec]` | [spec][spec] | Reference links resolve inside cells too |
+| `**a** \| *b*` | **a** \| *b* | Inline markup and escapes side by side |
+
+## Mathematics
+
+Every formula below is turned into MathML Core by `src/tex.js` and rendered by
+the browser itself — no KaTeX, no MathJax, no font to download. Inline maths uses
+`$…$` or `\(…\)`; display maths uses `$$…$$` or `\[…\]`.
+
+Inline first: the golden ratio $\varphi = \frac{1 + \sqrt{5}}{2}$ satisfies
+$\varphi^2 = \varphi + 1$, and for all $\varepsilon > 0$ there exists
+$\delta > 0$ such that $|f(x) - L| < \varepsilon$ whenever
+$0 < |x - a| < \delta$.
+
+Display maths sits on its own line and centres itself:
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2}\, dx = \sqrt{\pi}
+$$
+
+Sums and products take their limits above and below in display mode, beside the
+operator inline — compare $\sum_{k=1}^{n} k$ with
+
+$$
+\sum_{k=1}^{n} k = \frac{n(n+1)}{2}
+\qquad
+\prod_{i=1}^{n} \frac{1}{i} = \frac{1}{n!}
+$$
+
+Roots take an optional index, so a cube root is `\sqrt[3]{x}`:
+
+$$
+\sqrt[3]{\,\frac{27}{8}\,} = \frac{3}{2}
+\qquad
+\lim_{h \to 0} \frac{f(x + h) - f(x)}{h} = f'(x)
+$$
+
+Matrices and the other environments use `\begin{…}` … `\end{…}`, with `&`
+between columns and `\\` between rows:
+
+$$
+A = \begin{pmatrix} a & b \\ c & d \end{pmatrix}
+\qquad
+A^{-1} = \frac{1}{\det A} \begin{pmatrix} d & -b \\ -c & a \end{pmatrix}
+$$
+
+A `cases` block for a piecewise definition, with `\text{…}` for the prose in it:
+
+$$
+\operatorname{sgn}(x) = \begin{cases}
+-1 & \text{if } x < 0 \\
+0 & \text{if } x = 0 \\
++1 & \text{if } x > 0
+\end{cases}
+$$
+
+An `aligned` block lines several steps up on their equals signs:
+
+$$
+\begin{aligned}
+(x + y)^2 &= x^2 + 2xy + y^2 \\
+          &= x^2 + y^2 + 2xy \\
+\nabla \cdot \mathbf{E} &= \frac{\rho}{\epsilon_0}
+\end{aligned}
+$$
+
+Greek letters, blackboard bold, accents and stretchy delimiters all behave:
+
+$$
+\forall \theta \in \mathbb{R}: \quad
+\hat{u} = \frac{\vec{v}}{\lVert \vec{v} \rVert}, \quad
+\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i, \quad
+\tilde{\Lambda} = \left[ \frac{\alpha + \beta}{\gamma} \right]^{\!\top}
+$$
+
+$$
+\Gamma(z) = \int_0^\infty t^{z-1} e^{-t}\, dt
+\quad \Longrightarrow \quad
+\Gamma(n) = (n-1)! \ \ \text{for } n \in \mathbb{N}
+$$
+
+### When a formula is wrong
+
+Nothing throws. A formula the parser cannot make sense of is shown as red source
+with the reason in its tooltip, so one typo cannot blank the page — this next one
+opens a bracket it never closes:
+
+$$
+\left( \frac{1}{2} + x
+$$
+
+Hover it to see what the parser objected to, fix the source, and it renders on
+the next keystroke.
+
+---
+
+Written in Markdown Studio, which is [a single file](CONTRACT.md) you can read
+end to end. ![ok][dot]
+
+[^autosave]: Saved to this browser's `localStorage` under the `mdstudio.` prefix,
+    which never leaves your machine. If the browser has storage switched off —
+    some do on `file://` pages — the status bar says so instead of pretending.
+
+[spec]: https://spec.commonmark.org/current/ "CommonMark, current version"
+[logo]: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMjAiIGhlaWdodD0iNzIiIHZpZXdCb3g9IjAgMCAyMjAgNzIiPjxzdHlsZT4uY2FyZHtmaWxsOiNlZWYyZmY7c3Ryb2tlOiM2MzY2ZjF9Lmlua3tzdHJva2U6IzQzMzhjYX0ud29yZHtmaWxsOiMzNzMwYTN9QG1lZGlhKHByZWZlcnMtY29sb3Itc2NoZW1lOmRhcmspey5jYXJke2ZpbGw6IzFlMWIzYTtzdHJva2U6IzhiOGNmNX0uaW5re3N0cm9rZTojYTVhNmY2fS53b3Jke2ZpbGw6I2M3YzhmYX19PC9zdHlsZT48cmVjdCBjbGFzcz0iY2FyZCIgeD0iMSIgeT0iMSIgd2lkdGg9IjIxOCIgaGVpZ2h0PSI3MCIgcng9IjEwIiBzdHJva2Utd2lkdGg9IjIiLz48ZyBjbGFzcz0iaW5rIiBmaWxsPSJub25lIiBzdHJva2Utd2lkdGg9IjQiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIwIDUwVjIybDEzIDE2IDEzLTE2djI4Ii8+PHBhdGggZD0iTTYyIDIydjIwbTAgMCA4LTltLTggOS04LTkiLz48L2c+PHRleHQgY2xhc3M9IndvcmQiIHg9Ijg4IiB5PSI0NCIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsc2VyaWYiIGZvbnQtc2l6ZT0iMjAiPlN0dWRpbzwvdGV4dD48L3N2Zz4= "Markdown Studio"
+[dot]: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCI+PGNpcmNsZSBjeD0iNyIgY3k9IjciIHI9IjYiIGZpbGw9IiMyMmM1NWUiLz48L3N2Zz4= "ok"
