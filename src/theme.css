@@ -1,0 +1,194 @@
+/* ============================================================================
+   theme.css — design tokens ONLY. Nothing here selects an element.
+
+   Every colour is declared three times, in this order:
+     1. bare  :root                                         -> light palette
+     2. @media (prefers-color-scheme: dark) :root:not([data-theme="light"])
+     3. :root[data-theme="dark"]
+   so the in-page toggle wins in both directions (a user on a dark OS who picks
+   "light" keeps light, a user on a light OS who picks "dark" gets dark), and no
+   colour has its ONLY definition inside a media query.
+
+   `color-scheme` rides along with each palette: it is what makes native
+   scrollbars, the file picker and form controls match the page.
+   ========================================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* --- surfaces: a real elevation ladder, sunken < bg < elev -------------- */
+  --bg-sunken:    #e9ebef;   /* troughs: status bar, table headers, wells    */
+  --bg:           #f4f6f8;   /* the app's resting surface                    */
+  --bg-elev:      #ffffff;   /* raised paper: toolbar, preview, dialogs      */
+
+  /* --- lines ------------------------------------------------------------- */
+  --border:        #dde1e7;
+  --border-strong: #c0c6cf;
+
+  /* --- text (AA against --bg, --bg-elev and --bg-sunken) ------------------ */
+  --text:      #16181d;      /* 16.9:1 on white                              */
+  --text-dim:  #5c6470;      /*  5.9:1 on white, 4.8:1 on --bg-sunken        */
+
+  /* --- accent ------------------------------------------------------------ */
+  --accent:      #2a5fd6;    /*  5.6:1 on white, 4.8:1 on --accent-weak      */
+  --accent-weak: #e6edfd;    /* tint behind an active control                */
+  --accent-text: #ffffff;    /* text drawn ON a solid --accent fill          */
+
+  /* --- semantic ---------------------------------------------------------- */
+  --danger: #c0362c;         /*  4.9:1 on white                              */
+  --warn:   #8a5a00;         /*  5.9:1 on white                              */
+  --ok:     #12704a;         /*  6.1:1 on white                              */
+
+  /* --- code + marks ------------------------------------------------------ */
+  --code-bg:   #f0f2f5;
+  --code-text: #22262e;
+  --mark:      #ffe9a8;
+  --sel:       #cfe0ff;
+
+  /* --- depth ------------------------------------------------------------- */
+  --shadow: 0 1px 2px rgb(16 22 32 / .07), 0 10px 30px rgb(16 22 32 / .11);
+
+  /* --- spacing: 4 / 8 / 12 / 16 / 24 / 32 -------------------------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* --- type scale: 12 / 13.5 / 15 / 17 / 20 / 26 / 34 -------------------- */
+  --fs-1: 12px;
+  --fs-2: 13.5px;
+  --fs-3: 15px;
+  --fs-4: 17px;
+  --fs-5: 20px;
+  --fs-6: 26px;
+  --fs-7: 34px;
+
+  /* --- font stacks: system faces only, never a webfont ------------------- */
+  --sans:  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+           "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --mono:  ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas,
+           "Liberation Mono", "Roboto Mono", "Courier New", monospace;
+  --serif: ui-serif, Georgia, Cambria, "Iowan Old Style", "Palatino Linotype",
+           "Times New Roman", Times, serif;
+  /* Stretchy fences need a font carrying an OpenType MATH table with glyph size
+     variants — without one, `\left(` around a 2-row pmatrix stays a normal
+     13.8px paren next to a 38.5px matrix (measured in Chromium). Naming the
+     faces is what fixes it: the generic `math` keyword alone did NOT resolve to
+     an installed math font. Every entry here ships with an OS or a TeX install,
+     so this stays a system-font stack and nothing is ever downloaded.
+     STIXTwoMath.otf is present on macOS in /System/Library/Fonts/Supplemental. */
+  --math:  "STIX Two Math", "Latin Modern Math", "Cambria Math",
+           "TeX Gyre Termes Math", "DejaVu Math TeX Gyre", math, var(--serif);
+
+  /* --- geometry ---------------------------------------------------------- */
+  --radius:    7px;
+  --radius-lg: 12px;
+  --maxw:      76ch;         /* reading measure, ~66-80 characters           */
+}
+
+/* ---------------------------------------------------------------------------
+   Dark — a warm graphite, not an inverted white. Red sits a shade above blue
+   in every surface so the page reads like paper under lamplight rather than a
+   terminal, and the ladder stays honest: sunken < bg < elev.
+   ------------------------------------------------------------------------ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg-sunken: #131211;
+    --bg:        #1b1a19;
+    --bg-elev:   #232220;
+
+    --border:        #34322e;
+    --border-strong: #4d4944;
+
+    --text:     #eae7e2;       /* 13.7:1 on --bg                            */
+    --text-dim: #a49f97;       /*  6.5:1 on --bg                            */
+
+    --accent:      #7fa8ff;    /*  7.3:1 on --bg, 6.1:1 on --accent-weak    */
+    --accent-weak: #222a3a;
+    --accent-text: #12141a;    /* dark ink on the light accent fill         */
+
+    --danger: #f4867c;
+    --warn:   #e0b450;
+    --ok:     #6fd39b;
+
+    --code-bg:   #191817;
+    --code-text: #e6e2db;
+    --mark:      #5a4a1f;
+    --sel:       #33415e;
+
+    --shadow: 0 1px 2px rgb(0 0 0 / .55), 0 12px 34px rgb(0 0 0 / .5);
+  }
+}
+
+/* Same palette, forced by the toolbar toggle regardless of OS preference. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-sunken: #131211;
+  --bg:        #1b1a19;
+  --bg-elev:   #232220;
+
+  --border:        #34322e;
+  --border-strong: #4d4944;
+
+  --text:     #eae7e2;
+  --text-dim: #a49f97;
+
+  --accent:      #7fa8ff;
+  --accent-weak: #222a3a;
+  --accent-text: #12141a;
+
+  --danger: #f4867c;
+  --warn:   #e0b450;
+  --ok:     #6fd39b;
+
+  --code-bg:   #191817;
+  --code-text: #e6e2db;
+  --mark:      #5a4a1f;
+  --sel:       #33415e;
+
+  --shadow: 0 1px 2px rgb(0 0 0 / .55), 0 12px 34px rgb(0 0 0 / .5);
+}
+
+/* ---------------------------------------------------------------------------
+   Print — paper is white whatever the screen was doing. This block is last and
+   its selectors carry at least the specificity of the two dark blocks, so it
+   wins over both; without it, printing from dark mode yields near-white text.
+   ------------------------------------------------------------------------ */
+@media print {
+  :root,
+  :root:not([data-theme="light"]),
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
+    color-scheme: light;
+
+    --bg-sunken: #f2f3f5;
+    --bg:        #ffffff;
+    --bg-elev:   #ffffff;
+
+    --border:        #cfd4da;
+    --border-strong: #9aa1aa;
+
+    --text:     #000000;
+    --text-dim: #4a505a;
+
+    --accent:      #1a4bb5;
+    --accent-weak: #eef2fc;
+    --accent-text: #ffffff;
+
+    --danger: #a52b22;
+    --warn:   #7a4f00;
+    --ok:     #0d5f3e;
+
+    --code-bg:   #f4f5f7;
+    --code-text: #16181d;
+    --mark:      #ffefb8;
+    --sel:       transparent;
+
+    --shadow: none;
+  }
+}
