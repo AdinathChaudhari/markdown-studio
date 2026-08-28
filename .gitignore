@@ -5,3 +5,9 @@ __pycache__/
 # tests/test_ui.py and the confirm pass. dist/ is NOT ignored — the built
 # single file is the deliverable.
 tests/artifacts/
+
+# The stored About-image prompt + essence snapshot. Private by house
+# convention (GitHub/docs/about-image-language.md) — only the rendered
+# hero.png ships. The derived social card is never committed either.
+docs/media/ABOUT-IMAGE.md
+docs/media/hero-glass.jpg
