@@ -2,7 +2,11 @@
 GitHub metadata — authored here, applied by hand in repo Settings (NOT rendered on the page):
 About:  Read, edit & typeset Markdown entirely offline — a single 234 KB HTML file with GFM tables, LaTeX compiled to native MathML, and light/dark themes. No CDN, no web font, no npm.
 Topics (ranked): markdown-editor, markdown, markdown-viewer, latex, mathml, commonmark, gfm, markdown-parser, offline-first, single-file, zero-dependencies, vanilla-js, javascript, dark-mode, math-rendering, cross-platform
-Social preview: docs/media/hero-light.png re-shot at 1280x640 (current asset is 1440x900 — crop or re-render before applying).
+Social preview: docs/media/hero.png is the 1536x1024 source; the card is
+  derived, never committed —
+    python Tools/image_compress.py docs/media/hero.png 1MB --glass
+  then upload docs/media/hero-glass.jpg in Settings > Social preview.
+  See GitHub/docs/image-processing.md.
 -->
 
 # markdown-studio — Offline Markdown Reader & Editor
@@ -14,6 +18,10 @@ Social preview: docs/media/hero-light.png re-shot at 1280x640 (current asset is 
 ![JavaScript](https://img.shields.io/badge/javascript-vanilla-f7df1e)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![Single file: 234 KB](https://img.shields.io/badge/single%20file-234%20KB-blue)
+
+<p align="center">
+  <img src="docs/media/hero.png" alt="markdown-studio — marks on one half of a single sheet becoming set type on the other" width="720">
+</p>
 
 <table>
 <tr>
