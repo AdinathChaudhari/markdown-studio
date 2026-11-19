@@ -1,7 +1,7 @@
 <!--
 GitHub metadata — authored here, applied by hand in repo Settings (NOT rendered on the page):
-About:  Read, edit & typeset Markdown entirely offline — a single 234 KB HTML file with GFM tables, LaTeX compiled to native MathML, and light/dark themes. No CDN, no web font, no npm.
-Topics (ranked): markdown-editor, markdown, markdown-viewer, latex, mathml, commonmark, gfm, markdown-parser, offline-first, single-file, zero-dependencies, vanilla-js, javascript, dark-mode, math-rendering, cross-platform
+About:  Read, edit & typeset Markdown entirely offline — a single 238 KB HTML file or a 1 MB native Mac app, with GFM tables, LaTeX compiled to native MathML, and light/dark themes. No CDN, no web font, no npm.
+Topics (ranked): markdown-editor, markdown, markdown-viewer, macos-app, latex, mathml, commonmark, gfm, markdown-parser, offline-first, single-file, zero-dependencies, vanilla-js, swift, dark-mode, math-rendering, macos, javascript
 Social preview: docs/media/hero.png is the 1536x1024 source; the card is
   derived, never committed —
     python Tools/image_compress.py docs/media/hero.png 1MB --glass
@@ -11,13 +11,14 @@ Social preview: docs/media/hero.png is the 1536x1024 source; the card is
 
 # markdown-studio — Offline Markdown Reader & Editor
 
-**One HTML file. Tables, LaTeX, dark mode. No internet.**  
-*A hand-written Markdown renderer and TeX-to-MathML compiler inlined into a single self-contained page — open it from `file://` with the network unplugged and it still typesets mathematics.*
+**One HTML file — or a native Mac app. Tables, LaTeX, dark mode. No internet.**  
+*A hand-written Markdown renderer and TeX-to-MathML compiler inlined into a single self-contained page — open it from `file://` with the network unplugged and it still typesets mathematics, or download the 1 MB Mac app and double-click your `.md` files.*
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 ![JavaScript](https://img.shields.io/badge/javascript-vanilla-f7df1e)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)
-![Single file: 234 KB](https://img.shields.io/badge/single%20file-234%20KB-blue)
+![Single file: 238 KB](https://img.shields.io/badge/single%20file-238%20KB-blue)
+[![macOS app: download](https://img.shields.io/badge/macOS%20app-download-black?logo=apple)](https://github.com/AdinathChaudhari/markdown-studio/releases/latest)
 
 <p align="center">
   <img src="docs/media/hero.png" alt="markdown-studio — marks on one half of a single sheet becoming set type on the other" width="720">
@@ -32,15 +33,19 @@ Social preview: docs/media/hero.png is the 1536x1024 source; the card is
 </table>
 
 Most Markdown editors are an Electron install or a web app that phones home. This is one
-234 KB `.html` file: a CommonMark + GFM parser, a TeX-to-MathML compiler and the editor
+238 KB `.html` file: a CommonMark + GFM parser, a TeX-to-MathML compiler and the editor
 shell, concatenated into a single page with no CDN, no web font and no npm package. Copy it
 to a USB stick and it works on a machine that has never seen the internet.
+
+On a Mac you can skip the browser entirely: the same file ships inside a native app that uses
+the system's built-in WebKit and measures about 100–126 MB of memory with a document open.
 
 ## The map
 
 | I want to… | Where | What it is |
 |---|---|---|
 | **Just read** a `.md` file | [`markdown-studio.html`](markdown-studio.html) | Double-click it, then drop your file on the window |
+| **Use it as a Mac app** | [Releases](https://github.com/AdinathChaudhari/markdown-studio/releases/latest) | Download the DMG, drag to Applications, double-click any `.md` — see [macOS app](#macos-app) |
 | **Edit** with a live preview | `Split` mode, <kbd>⌘\\</kbd> | Source and render side by side, scroll-synced, draggable divider |
 | **Write mathematics** | `$…$` and `$$…$$` | Compiled to native MathML by [`src/tex.js`](src/tex.js) |
 | **Flip the theme** | <kbd>⌘/</kbd> | Light, dark, or follow the OS — remembered across reloads |
@@ -56,6 +61,8 @@ open markdown-studio/markdown-studio.html      # or just double-click it
 1. **Read** the page that loads — it is the manual and the test fixture at once.
 2. **Open** your own file with <kbd>⌘O</kbd>, or drag it anywhere onto the window.
 3. **Press** <kbd>?</kbd> for every shortcut.
+
+**On a Mac?** Download `MarkdownStudio-<version>.dmg` from [Releases](https://github.com/AdinathChaudhari/markdown-studio/releases/latest) instead — setup steps are in [macOS app](#macos-app).
 
 That is the whole install — no build, no dependencies, nothing to configure. Everything
 below is detail.
