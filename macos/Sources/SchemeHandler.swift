@@ -1,5 +1,6 @@
 import Foundation
 import WebKit
+import CryptoKit
 
 /// Serves `mdstudio://app/index.html` (the bundled single file) and, for relative
 /// images, files from the document's folder. Images only, never outside the folder.
@@ -21,7 +22,10 @@ final class SchemeHandler: NSObject, WKURLSchemeHandler {
                   let data = try? Data(contentsOf: file) else {
                 task.didFailWithError(URLError(.fileDoesNotExist)); return
             }
-            respond(task, url, data, "text/html; charset=utf-8")
+            guard let csp = Self.policy(forPage: data) else {
+                task.didFailWithError(URLError(.cannotParseResponse)); return   // never serve the page unprotected
+            }
+            respond(task, url, data, "text/html; charset=utf-8", csp: csp)
             return
         }
         guard let base = folder()?.resolvingSymlinksInPath().standardizedFileURL else {
@@ -39,10 +43,29 @@ final class SchemeHandler: NSObject, WKURLSchemeHandler {
 
     func webView(_ webView: WKWebView, stop task: WKURLSchemeTask) {}
 
-    private func respond(_ task: WKURLSchemeTask, _ url: URL, _ data: Data, _ mime: String) {
-        let resp = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [
-            "Content-Type": mime, "Content-Length": String(data.count), "Cache-Control": "no-store",
-        ])!
+    /// CSP for the page. The one inline <script> (the whole bundle) is allowed by its SHA-256, computed
+    /// from the bytes actually being served, so it stays right after every rebuild. No 'unsafe-inline'
+    /// for scripts: raw HTML in a document (onerror=..., injected <script>, javascript: links) cannot run.
+    /// Styles stay 'unsafe-inline' (one inline <style> plus style attributes from rendered markdown).
+    static func policy(forPage page: Data) -> String? {
+        guard let html = String(data: page, encoding: .utf8),
+              let open = html.range(of: "<script>"),
+              let close = html.range(of: "</script>", range: open.upperBound..<html.endIndex) else { return nil }
+        let body = Data(html[open.upperBound..<close.lowerBound].utf8)
+        let hash = Data(SHA256.hash(data: body)).base64EncodedString()
+        return [
+            "default-src 'none'",
+            "script-src 'sha256-\(hash)'",
+            "style-src 'unsafe-inline'",
+            "img-src mdstudio: data: https:",
+            "connect-src 'none'", "object-src 'none'", "base-uri 'none'", "form-action 'none'",
+        ].joined(separator: "; ")
+    }
+
+    private func respond(_ task: WKURLSchemeTask, _ url: URL, _ data: Data, _ mime: String, csp: String? = nil) {
+        var headers = ["Content-Type": mime, "Content-Length": String(data.count), "Cache-Control": "no-store"]
+        if let csp = csp { headers["Content-Security-Policy"] = csp }
+        let resp = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: headers)!
         task.didReceive(resp)
         task.didReceive(data)
         task.didFinish()

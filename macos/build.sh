@@ -4,12 +4,15 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
-PY="$HOME/.venvs/main/bin/python"
+# Python for build.py: $PYTHON if set, else ~/.venvs/main/bin/python if present, else python3.
+if [ -n "${PYTHON:-}" ]; then PY="$PYTHON"
+elif [ -x "$HOME/.venvs/main/bin/python" ]; then PY="$HOME/.venvs/main/bin/python"
+else PY="$(command -v python3 || true)"; fi
 APP="$HERE/build/Markdown Studio.app"
 EXE="$APP/Contents/MacOS/MarkdownStudio"
 LSREG=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
-[ -x "$PY" ] || { echo "missing $PY" >&2; exit 1; }
+[ -n "$PY" ] && command -v "$PY" >/dev/null 2>&1 || { echo "no Python found (set PYTHON=/path/to/python)" >&2; exit 1; }
 (cd "$ROOT" && "$PY" build.py)
 
 TMP="$(mktemp -d)"

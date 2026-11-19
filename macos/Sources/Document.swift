@@ -21,7 +21,8 @@ final class Document: NSDocument {
         guard let s = String(data: data, encoding: .utf8) else {
             throw NSError(domain: "MarkdownStudio", code: 1, userInfo: [NSLocalizedDescriptionKey: "not UTF-8 text"])
         }
-        if data.prefix(4096).contains(0) {
+        // Same rule as native.load in app.js: a NUL in the first 4096 UTF-16 units of the text.
+        if s.utf16.prefix(4096).contains(0) {
             throw NSError(domain: "MarkdownStudio", code: 2, userInfo: [NSLocalizedDescriptionKey: "binary file (contains NUL)"])
         }
         text = s.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
@@ -40,19 +41,36 @@ final class Document: NSDocument {
             super.save(to: url, ofType: typeName, for: saveOperation, completionHandler: completionHandler)
             return
         }
+        // completionHandler must run exactly once, whatever happens to the page or the window.
+        var finished = false
+        var writing = false   // once the disk write began, the timeout must not preempt it
+        let finish: (Error?) -> Void = { error in
+            guard !finished else { return }
+            finished = true
+            completionHandler(error)
+        }
+        func fail(_ why: String) {
+            finish(NSError(domain: "MarkdownStudio", code: 4, userInfo: [NSLocalizedDescriptionKey: why]))
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            if writing { return }
+            fail("The editor did not answer in time, so nothing was saved.")
+        }
         wc.fetchText { [weak self] result in
-            guard let self = self else { return }
+            guard !finished else { return }   // timed out already: write nothing late
+            guard let self = self else { fail("The document was closed before it could be saved."); return }
             switch result {
             case .failure(let err):
-                completionHandler(err)   // nothing written
+                finish(err)   // nothing written
             case .success(let t):
                 self.text = t
+                writing = true
                 self.superSave(to: url, ofType: typeName, for: saveOperation) { error in
                     if error == nil {
                         let name = saveOperation == .saveToOperation ? self.pageName : url.lastPathComponent
                         wc.markSaved(name: name)
                     }
-                    completionHandler(error)
+                    finish(error)
                 }
             }
         }

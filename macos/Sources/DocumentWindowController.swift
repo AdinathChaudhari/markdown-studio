@@ -65,7 +65,11 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, WKSc
     /// Runs `body` once the page has said `ready`; queued until then.
     func call(_ body: String, args: [String: Any] = [:], completion: ((Result<Any?, Error>) -> Void)? = nil) {
         let run = { [weak self] in
-            guard let self = self else { return }
+            guard let self = self else {
+                completion?(.failure(NSError(domain: "MarkdownStudio", code: 5,
+                    userInfo: [NSLocalizedDescriptionKey: "window closed"])))
+                return
+            }
             self.webView.callAsyncJavaScript(body, arguments: args, in: nil, in: .page) { result in
                 switch result {
                 case .success(let v): completion?(.success(v))
@@ -79,7 +83,27 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, WKSc
     func pushLoad() {
         guard isReady, let d = doc else { return }
         call("return window.__mdstudio.native.load(text, name);",
-             args: ["text": d.text, "name": d.pageName]) { [weak self] _ in self?.loadCompleted = true }
+             args: ["text": d.text, "name": d.pageName]) { [weak self] result in
+            guard let self = self else { return }
+            self.loadCompleted = true
+            switch result {
+            case .success(let v) where (v as? Bool) == true: break
+            case .success:
+                self.loadFailed("The editor refused this file (it looks like a binary file), so it was not loaded.")
+            case .failure(let e):
+                self.loadFailed("The editor could not load this file: \(e.localizedDescription)")
+            }
+        }
+    }
+
+    private(set) var loadError: String?
+
+    private func loadFailed(_ why: String) {
+        loadError = why
+        SelfTest.log(why)
+        guard selfTestPaths == nil, let w = window else { return }   // selftest must never open a dialog
+        let err = NSError(domain: "MarkdownStudio", code: 6, userInfo: [NSLocalizedDescriptionKey: why])
+        w.presentError(err, modalFor: w, delegate: nil, didPresent: nil, contextInfo: nil)
     }
 
     func fetchText(_ done: @escaping (Result<String, Error>) -> Void) {
@@ -113,6 +137,9 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, WKSc
     // MARK: JS -> native
 
     func userContentController(_ c: WKUserContentController, didReceive message: WKScriptMessage) {
+        // Only the app page itself may talk to native: top frame, mdstudio://app.
+        let origin = message.frameInfo.securityOrigin
+        guard message.frameInfo.isMainFrame, origin.protocol == "mdstudio", origin.host == "app" else { return }
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         switch type {
         case "ready":
@@ -146,17 +173,26 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, WKSc
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = action.request.url else { decisionHandler(.cancel); return }
-        if action.targetFrame?.isMainFrame ?? true,
-           Self.sameIgnoringFragment(url, Self.pageURL) { decisionHandler(.allow); return }
+        if action.targetFrame?.isMainFrame ?? true, Self.sameIgnoringFragment(url, Self.pageURL) {
+            // The initial/reload load is a programmatic `.other` navigation. A same-page jump is
+            // fragment-only. Anything else resolving to the app page (a clicked relative link, a
+            // form) would reload the editor and drop unsaved text, so cancel it.
+            if action.navigationType == .other || (url.fragment != nil && action.navigationType != .formSubmitted) {
+                decisionHandler(.allow); return
+            }
+            decisionHandler(.cancel); return
+        }
         if action.targetFrame != nil, !(action.targetFrame!.isMainFrame) { decisionHandler(.allow); return }
         if action.navigationType == .linkActivated {
             let scheme = url.scheme?.lowercased() ?? ""
             if ["http", "https", "mailto"].contains(scheme) {
                 NSWorkspace.shared.open(url)
             } else if scheme == "mdstudio", let base = doc?.fileURL?.deletingLastPathComponent() {
+                // Same containment as SchemeHandler: inside the document folder, symlinks resolved.
+                let root = base.resolvingSymlinksInPath().standardizedFileURL
                 let rel = String(url.path.drop(while: { $0 == "/" }))
-                let target = base.appendingPathComponent(rel).standardizedFileURL
-                if FileManager.default.fileExists(atPath: target.path) {
+                let target = root.appendingPathComponent(rel).resolvingSymlinksInPath().standardizedFileURL
+                if target.path.hasPrefix(root.path + "/"), FileManager.default.fileExists(atPath: target.path) {
                     if DropWebView.exts.contains(target.pathExtension.lowercased()) {
                         NSDocumentController.shared.openDocument(withContentsOf: target, display: true) { _, _, e in
                             if let e = e { NSApp.presentError(e) }
