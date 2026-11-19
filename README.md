@@ -21,7 +21,7 @@ Social preview: docs/media/hero.png is the 1536x1024 source; the card is
 [![macOS app: download](https://img.shields.io/badge/macOS%20app-download-black?logo=apple)](https://github.com/AdinathChaudhari/markdown-studio/releases/latest)
 
 <p align="center">
-  <img src="docs/media/hero.png" alt="markdown-studio — a single sheet rising out of its app tile, plain marks on one half becoming set type on the other" width="720">
+  <img src="docs/media/hero-rounded.png" alt="markdown-studio — a single sheet rising out of its app tile, plain marks on one half becoming set type on the other" width="720">
 </p>
 
 <table>
