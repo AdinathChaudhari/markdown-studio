@@ -193,6 +193,35 @@ image targets, but this is not a sanitiser. Do not point it at untrusted Markdow
 
 ---
 
+## macOS app
+
+Markdown Studio also builds as a native Mac app. It hosts the same `markdown-studio.html` in the system WebKit, so there is no browser to install. The app's own code makes no network requests; remote (https) images referenced by a document are loaded like in a browser, while scripts and fetches stay blocked. It is a real document app: its own Dock icon, menu bar and windows, one window per file, and Finder's Open With for Markdown and plain-text files.
+
+Build it (needs the Xcode command-line tools and the Python 3 that runs `build.py`):
+
+```sh
+./macos/build.sh                  # -> macos/build/Markdown Studio.app
+```
+
+Then drag `macos/build/Markdown Studio.app` to `/Applications`. The build never copies it there.
+
+What it does:
+
+- Open from Finder: double-click a file, use Open With, or drop a file on the window.
+- Save in place with <kbd>⌘S</kbd>; Save As with <kbd>⇧⌘S</kbd>.
+- Closing or quitting with unsaved changes shows Save / Don't Save / Cancel.
+- Print with <kbd>⌘P</kbd>, including saving a PDF from the print panel.
+- Light, dark and system themes with <kbd>⌘/</kbd>, remembered across launches.
+
+Memory, measured on macOS 27 with `demo.md` open, about 5 s after `open -a`:
+
+- By `footprint` (phys_footprint): about 126 MB total. App 31 + WebContent 71 + GPU 17 + Networking 7.5.
+- By `ps -o rss`: about 197 MB total. App 104 + WebContent 54 + GPU 26 + Networking 12.
+
+Status: the headless selftest passes (open, render, edit, save) and the window was checked by hand on a real desktop. Finder Open With, drag-drop and print have not been exercised by hand yet. Line endings (CRLF, CR, LF) and a UTF-8 BOM are preserved on save. Known limits: unsaved edits are lost on a crash (including a web-content process crash, which reloads the last saved text), and relative images load only from the document's folder and below. The shortcut table and bridge notes are in [`macos/README.md`](macos/README.md).
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

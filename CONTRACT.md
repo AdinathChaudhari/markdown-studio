@@ -157,7 +157,8 @@ Behaviour `src/app.js` must provide:
 1. **Open** via button, drag-and-drop onto the window, and paste of a `.md` file.
 2. **Save** via `Blob` + `<a download>`; keeps the opened filename, defaults to
    `untitled.md`. Also try `showSaveFilePicker` when present, falling back
-   silently — `file://` in some browsers rejects it.
+   silently — `file://` in some browsers rejects it. In native mode (below) Save
+   goes through the bridge and never through Blob or the picker.
 3. **Live preview**, debounced ~120 ms, that never loses scroll position.
 4. **Three modes** — edit only, split, read only — persisted.
 5. **Theme**: `light` / `dark` / `system`, applied as `data-theme` on `<html>`,
@@ -193,6 +194,50 @@ give a colour its only definition inside a media query.
 --mark --shadow --sel`, plus `--sp-1..6` = 4/8/12/16/24/32 px and
 `--fs-1..7` = 12/13.5/15/17/20/26/34 px, `--mono`, `--sans`, `--serif` font
 stacks built only from system fonts, `--radius`, `--radius-lg`, `--maxw`.
+
+## Native bridge (macOS app, optional)
+
+Frozen v1. The macOS shell (`macos/`) hosts this same file in a WKWebView. All of
+it is behind `NATIVE`; a plain browser never takes these branches.
+
+### 1. Page origin and detection
+- Native loads `mdstudio://app/index.html` through a WKURLSchemeHandler, never `loadFileURL`.
+- `NATIVE = window.webkit.messageHandlers.mdstudio` (try/catch, must have a function
+  `postMessage`), else `null`. No user-agent or protocol sniffing.
+
+### 2. JS -> native
+One handler `mdstudio`, plain `postMessage(obj)`, no reply, every object has a string `type`.
+- `ready` `{v:1}`: once at the end of `boot()`; native replies with `load`.
+- `dirty` `{dirty:Boolean}`: the only dirty source, sent on change of `state.dirty`.
+- `open`, `new`, `save`, `print`: no payload.
+- `copy` `{text}`; `theme` `{theme:'light'|'dark'|'system'}`.
+Unknown types are ignored. JS wraps every post in try/catch.
+
+### 3. Native -> JS (`window.__mdstudio.native`, exists only when `NATIVE`)
+- `load(text, name)` -> Bool: normalises `\r\n?` to `\n`, sets name, dirty=false, renders synchronously; false if a NUL is in the first 4096 chars.
+- `getText()` -> String: exact `editor.value`, remembered as `lastHanded`.
+- `markSaved(name)` -> Bool (still dirty): cleans if `editor.value === lastHanded`, or if `getText` has not been called since the last `load` (`lastHanded` is null); otherwise re-posts `dirty:true`.
+- `command(id)` -> Bool: `bold italic link mode-cycle mode-edit mode-split mode-read theme-cycle outline help copy-html demo`. While the help dialog is open every id except `help` returns false.
+- `appendText(text)` -> String: appends via `editRange`; used by the selftest.
+
+### 4. Save
+Every save reaches native `Document.save`, which calls `getText()`, writes
+the text (no added newline) with the file's own dominant line ending (CRLF, CR or LF, detected on read) and its UTF-8 BOM if it had one, then calls `markSaved`. The editor text itself is always LF. If the editor failed to load the file, native refuses to save ("not loaded"). JS never writes files in native mode.
+
+### 5. Shortcut ownership
+In native mode `onKeydown` skips every SHORTCUTS entry with `mod: true` (neither runs nor
+preventDefaults it), so the native menu owns Cmd-N/O/W/S/P/Q/Z/X/C/V/A/F/G, B, I, K, \\, /,
+Shift-O, 1/2/3 and Opt-C. JS keeps Tab, Shift-Tab, Enter, Esc and `?` in both modes.
+
+### 6. Storage
+Shared origin `mdstudio://app`. Native mode reads and writes only `mdstudio.mode`,
+`.theme`, `.split`, `.outline`; never `doc`, `name`, `dirty`, `scroll`, `caret`. Boot state is an
+empty editor named `Untitled`, clean; native then pushes content via `load`.
+
+### 7. Bypasses
+A File that still reaches JS `loadFile` loads into the current document, name unchanged,
+dirty, with `Loaded contents of <name> (not linked to that file)`. Native serves
+`mdstudio://app/<other>` from the document folder, image types only.
 
 ## Tests
 
