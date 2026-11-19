@@ -11,3 +11,12 @@ tests/artifacts/
 # hero.png ships. The derived social card is never committed either.
 docs/media/ABOUT-IMAGE.md
 docs/media/hero-glass.jpg
+
+# Private working records (house convention) + local review output.
+conversations/
+decisions.md
+docs/runs/
+.preflight/
+
+# macOS app build output — rebuilt by macos/build.sh.
+macos/build/
