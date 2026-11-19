@@ -31,7 +31,7 @@ os.environ.setdefault(
     str(Path.home() / "Library" / "Caches" / "ms-playwright"),
 )
 
-from playwright.sync_api import sync_playwright  # noqa: E402
+from playwright.sync_api import sync_playwright
 
 SHIM = """
 window.__posts = [];
