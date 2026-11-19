@@ -147,3 +147,12 @@ you add a decorator back, keep that convention.
 **Verify the rendered page by driving it, not by reading the markup.** A table
 that lost its alignment, a formula that paints as a zero-width box and a
 colour that fails contrast all look fine in the HTML.
+
+## macOS app (macos/)
+
+- Layout: `macos/Sources/*.swift` is the AppKit shell. `main.swift` creates `DocumentController()` before anything touches `NSDocumentController.shared`. `Document.swift` is the `MDDocument` NSDocument; `DocumentWindowController` owns the WKWebView and the `mdstudio` message handler; `SchemeHandler` serves `mdstudio://app/`; `DropWebView` takes file drops; `MainMenu` is built in code (no nib, no storyboard); `SelfTest` is the headless check. `macos/Info.plist`, `macos/make_icon.swift` and `macos/README.md` sit beside them.
+- `macos/build.sh` runs `build.py` first, generates the icon, compiles with `-swift-version 5` for arm64 macOS 13, copies `markdown-studio.html` into the bundle, ad-hoc signs and runs `lsregister`. Output goes to `macos/build/` (git-ignored). It never copies to `/Applications`.
+- Bridge contract: `CONTRACT.md`, section "Native bridge (macOS app, optional)", frozen v1. Every native branch in `src/app.js` is gated on `NATIVE`. In native mode, Save goes through `Document.save` -> `getText()`, never through the picker or a download. Do not add `loadFileURL` or any JS-side file write.
+- Selftest: `macos/build.sh --selftest`, or run the exe with `--selftest in.md out.md`. It prints one JSON line on stdout, exits 0 only when the document opened, the saved bytes match, the edit set dirty and every math box is non-zero. Needs a logged-in GUI session. Before the `src/` native half lands it exits 1 with `timeout waiting for ready`.
+- Shortcut ownership: in native mode `onKeydown` skips every `mod: true` SHORTCUTS entry, so the native menu owns those keys (table in `macos/README.md`). JS keeps Tab, Shift-Tab, Enter, Esc and `?` in both modes.
+- The 281-test suite never enters the native branch. `tests/test_native_bridge.py` (window.webkit shim, mutation-check the `saveFile` guard) is planned, not yet written.

@@ -5,7 +5,9 @@
  * that failed to parse) and the app still has to show the user their text.
  *
  * No imports, no exports, no dependencies. Assigns exactly one global:
- * window.__mdstudio = { render, setText, getState } — the test hook.
+ * window.__mdstudio = { render, setText, getState } — the test hook. Inside the
+ * macOS host app it also carries a `native` member (see CONTRACT.md, "Native
+ * bridge"); a plain browser never gets it.
  */
 (function () {
   'use strict';
@@ -35,6 +37,25 @@
 
   function clamp(n, lo, hi) {
     return n < lo ? lo : (n > hi ? hi : n);
+  }
+
+  /* Native host (macOS app) detection. Null in every plain browser, and every
+   * `if (NATIVE)` branch below is then skipped. */
+  var NATIVE = null;
+  try {
+    var mh = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.mdstudio;
+    if (mh && typeof mh.postMessage === 'function') NATIVE = mh;
+  } catch (e) { NATIVE = null; }
+  var lastHanded = null;
+
+  function tell(type, extra) {
+    if (!NATIVE) return false;
+    try {
+      var msg = { type: type };
+      if (extra) for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) msg[k] = extra[k];
+      NATIVE.postMessage(msg);
+      return true;
+    } catch (e) { return false; }
   }
 
   /* localStorage may be disabled outright on a file:// page, and touching it
@@ -172,8 +193,10 @@
   }
 
   function setDirty(d) {
+    var was = state.dirty;
     state.dirty = !!d;
     paintName();
+    if (NATIVE && was !== state.dirty) tell('dirty', { dirty: state.dirty });
   }
 
   function statsOf(text) {
@@ -577,6 +600,7 @@
       btnTheme.setAttribute('aria-label', 'Theme: ' + state.theme + ' (click to cycle)');
       btnTheme.setAttribute('data-theme-value', state.theme);
     }
+    if (NATIVE) tell('theme', { theme: state.theme });
   }
 
   function setTheme(theme) {
@@ -613,6 +637,13 @@
 
   function persistNow() {
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = 0; }
+    if (NATIVE) {
+      lsSet('mode', state.mode);
+      lsSet('theme', state.theme);
+      lsSet('split', state.ratio);
+      lsSet('outline', state.outlineOpen ? '1' : '0');
+      return;
+    }
     var ok = lsSet('doc', editor.value);
     lsSet('name', state.name);
     lsSet('dirty', state.dirty ? '1' : '0');
@@ -656,6 +687,12 @@
     state.ratio = isFinite(ratio) ? clamp(ratio, 0.15, 0.85) : 0.5;
 
     state.outlineOpen = lsGet('outline', '0') === '1';
+    if (NATIVE) {
+      editor.value = '';
+      state.name = 'Untitled';
+      state.dirty = false;
+      return { scroll: 0, caret: 0 };
+    }
     state.name = lsGet('name', 'untitled.md') || 'untitled.md';
     state.dirty = lsGet('dirty', '0') === '1';
 
@@ -961,6 +998,11 @@
       say('"' + name + '" looks like a binary file — not loading it.', 'error');
       return;
     }
+    if (NATIVE) {
+      setText(text.replace(/\r\n?/g, '\n'));
+      say('Loaded contents of ' + name + ' (not linked to that file)');
+      return;
+    }
     setText(text.replace(/\r\n?/g, '\n'), name);
     say('Opened ' + name);
   }
@@ -996,10 +1038,12 @@
   }
 
   function openFile() {
+    if (tell('open')) return;
     if (fileInput) fileInput.click();
   }
 
   function newDocument() {
+    if (tell('new')) return;
     if (state.dirty && editor.value !== '') {
       var ok = true;
       try { ok = window.confirm('Discard unsaved changes to ' + state.name + '?'); } catch (e) { ok = true; }
@@ -1039,6 +1083,7 @@
   }
 
   function saveFile() {
+    if (tell('save')) return;
     var name = currentFilename();
     var blob;
     try {
@@ -1119,6 +1164,7 @@
   }
 
   function copyText(text) {
+    if (NATIVE) return Promise.resolve(tell('copy', { text: String(text) }));
     var p = null;
     try {
       if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -1145,6 +1191,7 @@
    * chrome and prints the reader in every mode, and a hook nothing styles is
    * only a trap for whoever reads the JS next. */
   function doPrint() {
+    if (tell('print')) return;
     try { window.print(); } catch (e) { /* ignore */ }
   }
 
@@ -1333,6 +1380,7 @@
     if (e.key !== 'Escape' && helpIsOpen()) return;
 
     for (var i = 0; i < SHORTCUTS.length; i++) {
+      if (NATIVE && SHORTCUTS[i].mod) continue;
       if (matchesShortcut(SHORTCUTS[i], e, target)) {
         e.preventDefault();
         SHORTCUTS[i].run();
@@ -1511,6 +1559,54 @@
     say(msg, 'warn', true);
   }
 
+  /* Native host entry points (window.__mdstudio.native). */
+  function nativeLoad(text, name) {
+    text = text == null ? '' : String(text);
+    if (text.slice(0, 4096).indexOf('\u0000') >= 0) return false;
+    setText(text.replace(/\r\n?/g, '\n'), name || 'Untitled');
+    lastHanded = null;
+    return true;
+  }
+
+  function nativeGetText() {
+    lastHanded = editor.value;
+    return lastHanded;
+  }
+
+  function nativeMarkSaved(name) {
+    if (name) setName(name);
+    if (lastHanded === null || editor.value === lastHanded) setDirty(false);
+    else tell('dirty', { dirty: true });
+    say('Saved ' + state.name);
+    return state.dirty;
+  }
+
+  function nativeCommand(id) {
+    if (id !== 'help' && helpIsOpen()) return false;
+    switch (id) {
+      case 'bold': wrapSelection('**', '**', 'bold'); break;
+      case 'italic': wrapSelection('*', '*', 'italic'); break;
+      case 'link': toggleLink(); break;
+      case 'mode-cycle': cycleMode(); break;
+      case 'mode-edit': setMode('edit'); break;
+      case 'mode-split': setMode('split'); break;
+      case 'mode-read': setMode('read'); break;
+      case 'theme-cycle': cycleTheme(); break;
+      case 'outline': setOutlineOpen(!state.outlineOpen); break;
+      case 'help': openHelp(); break;
+      case 'copy-html': copyHtml(); break;
+      case 'demo': setText(window.DEFAULT_DOC || '', state.name); break;
+      default: return false;
+    }
+    return true;
+  }
+
+  function nativeAppendText(text) {
+    var n = editor.value.length;
+    editRange(n, n, String(text));
+    return editor.value;
+  }
+
   function boot() {
     grabElements();
 
@@ -1519,6 +1615,16 @@
       setText: setText,
       getState: getState
     };
+    if (NATIVE) {
+      window.__mdstudio.native = {
+        v: 1,
+        load: nativeLoad,
+        getText: nativeGetText,
+        markSaved: nativeMarkSaved,
+        command: nativeCommand,
+        appendText: nativeAppendText
+      };
+    }
 
     watchSystemTheme();
     var restored = restore();
@@ -1555,6 +1661,7 @@
       reportedStorage = true;
       say('Local storage is unavailable here — your work is not being autosaved.', 'warn', true);
     }
+    tell('ready', { v: 1 });
   }
 
   function getState() {
