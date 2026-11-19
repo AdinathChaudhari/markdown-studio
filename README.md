@@ -197,6 +197,20 @@ image targets, but this is not a sanitiser. Do not point it at untrusted Markdow
 
 Markdown Studio also builds as a native Mac app. It hosts the same `markdown-studio.html` in the system WebKit, so there is no browser to install. The app's own code makes no network requests; remote (https) images referenced by a document are loaded like in a browser, while scripts and fetches stay blocked. It is a real document app: its own Dock icon, menu bar and windows, one window per file, and Finder's Open With for Markdown and plain-text files.
 
+### Download
+
+1. Grab `MarkdownStudio-<version>.dmg` from the [latest release](../../releases/latest).
+2. Open it and drag **Markdown Studio** to **Applications**.
+3. First open only: double-click the app. macOS says it can't verify the developer. Click **Done**, open **System Settings → Privacy & Security**, scroll to "Markdown Studio was blocked…", click **Open Anyway** and confirm. After that it opens normally.
+
+Terminal alternative: `xattr -dr com.apple.quarantine "/Applications/Markdown Studio.app"`.
+
+Why the warning: the app is free and not notarized (that needs a paid Apple developer account). The source is in this repo and you can build it yourself, below. It runs on Apple silicon and Intel, macOS 13 or later.
+
+Set it as the default for `.md` files: select a `.md` file in Finder, Get Info (<kbd>⌘I</kbd>), **Open with** → Markdown Studio → **Change All…**.
+
+### Build it yourself
+
 Build it (needs the Xcode command-line tools and the Python 3 that runs `build.py`):
 
 ```sh
