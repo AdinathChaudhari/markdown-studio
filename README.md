@@ -1,7 +1,7 @@
 <!--
 GitHub metadata — authored here, applied by hand in repo Settings (NOT rendered on the page):
-About:  Read, edit & typeset Markdown entirely offline — a single 238 KB HTML file or a 1 MB native Mac app, with GFM tables, LaTeX compiled to native MathML, and light/dark themes. No CDN, no web font, no npm.
-Topics (ranked): markdown-editor, markdown, markdown-viewer, macos-app, latex, mathml, commonmark, gfm, markdown-parser, offline-first, single-file, zero-dependencies, vanilla-js, swift, dark-mode, math-rendering, macos, javascript
+About:  Read, edit & typeset Markdown offline — a 1 MB native macOS app on system WebKit, or the same 238 KB single HTML file, with GFM tables & LaTeX compiled to native MathML.
+Topics (ranked): markdown-editor, markdown, markdown-viewer, macos-app, latex, mathml, commonmark, gfm, markdown-parser, offline-first, single-file, zero-dependencies, vanilla-js, swift, dark-mode, math-rendering, macos
 Social preview: docs/media/hero.png is the 1536x1024 source; the card is
   derived, never committed —
     python Tools/image_compress.py docs/media/hero.png 1MB --glass
