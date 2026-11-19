@@ -9,10 +9,19 @@ No Electron, no packages. The app's own code makes no network requests; https im
 ```sh
 macos/build.sh              # -> macos/build/Markdown Studio.app (ad-hoc signed, git-ignored)
 macos/build.sh --selftest   # also runs the headless open -> edit -> save check
+macos/build.sh --universal  # arm64 + x86_64 fat binary (lipo); flags combine
 open "macos/build/Markdown Studio.app"
 ```
 
 `build.sh` runs `build.py` with `$PYTHON` if set, else `~/.venvs/main/bin/python` if it exists, else `python3`.
+
+## Release (DMG)
+
+`macos/package_dmg.sh` runs `build.sh --universal`, reads `CFBundleShortVersionString` from `Info.plist`, and writes `macos/build/MarkdownStudio-<version>.dmg` (UDZO, volume "Markdown Studio", app plus an `/Applications` symlink) and prints its SHA-256. The app is ad-hoc signed and not notarized (no Developer ID), so users approve it once via Privacy & Security, see the root README. The maintainer publishes with:
+
+```sh
+gh release create v<version> macos/build/MarkdownStudio-<version>.dmg --title "Markdown Studio <version>" --notes "..."
+```
 
 Headless check (needs a logged-in GUI session; prints one JSON line, exit 0/1):
 
@@ -44,7 +53,8 @@ The page is served with a Content-Security-Policy whose `script-src` is the SHA-
 
 - Line endings: the dominant ending (CRLF, CR or LF) and a UTF-8 BOM are detected on read and restored on save; the editor itself works in LF. Mixed-ending files are saved with their dominant ending.
 - If the editor fails to load a file, Save is refused ("not loaded") so the file is never overwritten with an empty document.
-- `build.sh` builds for the host architecture (`uname -m`: arm64 or x86_64), not universal.
+- `build.sh` builds for the host architecture by default; use `--universal` (what `package_dmg.sh` does) for arm64 + x86_64.
+- Releases are ad-hoc signed, not notarized: Gatekeeper blocks the first open until the user clicks Open Anyway.
 - No crash recovery: unsaved edits are lost if the app crashes. If only the web-content process dies, the page reloads and re-pushes the last saved text, silently discarding unsaved edits (preflight F4, not fixed).
 - Theme/mode are read at window creation; other open windows repaint on reopen.
 - Relative images resolve only from the document's folder and below (not `../`); untitled docs load none.
