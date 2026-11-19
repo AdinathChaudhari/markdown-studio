@@ -87,7 +87,9 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, WKSc
             guard let self = self else { return }
             self.loadCompleted = true
             switch result {
-            case .success(let v) where (v as? Bool) == true: break
+            case .success(let v) where (v as? Bool) == true:
+                self.loadError = nil
+                self.doc?.loadBlockedReason = nil
             case .success:
                 self.loadFailed("The editor refused this file (it looks like a binary file), so it was not loaded.")
             case .failure(let e):
@@ -100,6 +102,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, WKSc
 
     private func loadFailed(_ why: String) {
         loadError = why
+        doc?.loadBlockedReason = why   // Document.save / data(ofType:) now refuse: never write '' over the file
         SelfTest.log(why)
         guard selfTestPaths == nil, let w = window else { return }   // selftest must never open a dialog
         let err = NSError(domain: "MarkdownStudio", code: 6, userInfo: [NSLocalizedDescriptionKey: why])
@@ -193,11 +196,13 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, WKSc
                 let rel = String(url.path.drop(while: { $0 == "/" }))
                 let target = root.appendingPathComponent(rel).resolvingSymlinksInPath().standardizedFileURL
                 if target.path.hasPrefix(root.path + "/"), FileManager.default.fileExists(atPath: target.path) {
-                    if DropWebView.exts.contains(target.pathExtension.lowercased()) {
+                    // Only text documents open in the app; anything else (apps, scripts, .command...)
+                    // is only revealed in Finder, never launched.
+                    if ["md", "markdown", "mdown", "txt"].contains(target.pathExtension.lowercased()) {
                         NSDocumentController.shared.openDocument(withContentsOf: target, display: true) { _, _, e in
                             if let e = e { NSApp.presentError(e) }
                         }
-                    } else { NSWorkspace.shared.open(target) }
+                    } else { NSWorkspace.shared.activateFileViewerSelecting([target]) }
                 }
             }
         }
@@ -247,7 +252,7 @@ final class DocumentWindowController: NSWindowController, NSWindowDelegate, WKSc
     // MARK: Find
 
     private func setupFindBar() {
-        findField.placeholderString = "Find in editor"
+        findField.placeholderString = "Find in page"
         findField.sendsSearchStringImmediately = false
         findField.target = self
         findField.action = #selector(findNextFromField(_:))

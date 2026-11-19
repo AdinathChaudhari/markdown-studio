@@ -23,7 +23,8 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 xcrun swift "$HERE/make_icon.swift" "$TMP/AppIcon.iconset"
 iconutil -c icns "$TMP/AppIcon.iconset" -o "$APP/Contents/Resources/AppIcon.icns"
 
-xcrun swiftc -O -swift-version 5 -target arm64-apple-macos13.0 \
+# Builds for the host architecture (arm64 or x86_64), not universal.
+xcrun swiftc -O -swift-version 5 -target "$(uname -m)-apple-macos13.0" \
   -module-name MarkdownStudio -framework Cocoa -framework WebKit \
   "$HERE"/Sources/*.swift -o "$EXE"
 

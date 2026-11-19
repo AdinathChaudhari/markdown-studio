@@ -216,13 +216,13 @@ Unknown types are ignored. JS wraps every post in try/catch.
 ### 3. Native -> JS (`window.__mdstudio.native`, exists only when `NATIVE`)
 - `load(text, name)` -> Bool: normalises `\r\n?` to `\n`, sets name, dirty=false, renders synchronously; false if a NUL is in the first 4096 chars.
 - `getText()` -> String: exact `editor.value`, remembered as `lastHanded`.
-- `markSaved(name)` -> Bool (still dirty): clean only if `editor.value === lastHanded`, else re-posts `dirty:true`.
+- `markSaved(name)` -> Bool (still dirty): cleans if `editor.value === lastHanded`, or if `getText` has not been called since the last `load` (`lastHanded` is null); otherwise re-posts `dirty:true`.
 - `command(id)` -> Bool: `bold italic link mode-cycle mode-edit mode-split mode-read theme-cycle outline help copy-html demo`. While the help dialog is open every id except `help` returns false.
 - `appendText(text)` -> String: appends via `editRange`; used by the selftest.
 
 ### 4. Save
 Every save reaches native `Document.save`, which calls `getText()`, writes
-`Data(text.utf8)` (no BOM, no added newline), then calls `markSaved`. JS never writes files in native mode.
+the text (no added newline) with the file's own dominant line ending (CRLF, CR or LF, detected on read) and its UTF-8 BOM if it had one, then calls `markSaved`. The editor text itself is always LF. If the editor failed to load the file, native refuses to save ("not loaded"). JS never writes files in native mode.
 
 ### 5. Shortcut ownership
 In native mode `onKeydown` skips every SHORTCUTS entry with `mod: true` (neither runs nor

@@ -61,7 +61,7 @@ enum MainMenuBuilder {
         add(edit, "Delete", #selector(NSText.delete(_:)))
         add(edit, "Select All", #selector(NSText.selectAll(_:)), "a")
         edit.addItem(.separator())
-        add(edit, "Find…", #selector(DocumentWindowController.mdFind(_:)), "f")
+        add(edit, "Find in Page…", #selector(DocumentWindowController.mdFind(_:)), "f")
         add(edit, "Find Next", #selector(DocumentWindowController.mdFindNext(_:)), "g")
         add(edit, "Find Previous", #selector(DocumentWindowController.mdFindPrevious(_:)), "g", [.command, .shift])
         edit.addItem(.separator())
