@@ -4,8 +4,20 @@ import Cocoa
 /// Stdout carries exactly one JSON line; everything else goes to stderr.
 enum SelfTest {
     static let marker = "\n<!-- mdstudio-selftest -->"
-    static var stage = "start"
-    static var result: [(String, Any)] = []
+    // Read by the watchdog thread and written by the main actor: every access takes the lock.
+    private static let lock = NSLock()
+    private static var _stage = "start"
+    private static var _result: [(String, Any)] = []
+    static var stage: String {
+        get { lock.lock(); defer { lock.unlock() }; return _stage }
+        set { lock.lock(); defer { lock.unlock() }; _stage = newValue }
+    }
+    static var result: [(String, Any)] {
+        get { lock.lock(); defer { lock.unlock() }; return _result }
+        set { lock.lock(); defer { lock.unlock() }; _result = newValue }
+    }
+    static var expectMath = false
+    static var expectTables = false
 
     static func log(_ s: String) { FileHandle.standardError.write(Data((s + "\n").utf8)) }
 
@@ -23,6 +35,10 @@ enum SelfTest {
         let ok = error == nil && (m["opened"] as? Bool) == true && (m["saved_bytes_match"] as? Bool) == true
             && (m["dirty_after_edit"] as? Bool) == true
             && (m["rendered_math"] as? Int) == (m["math_nonzero_boxes"] as? Int)
+            && (!expectMath || ((m["rendered_math"] as? Int) ?? 0) > 0)
+            && (!expectTables || ((m["rendered_tables"] as? Int) ?? 0) > 0)
+            && (m["csp_active"] as? Bool) == true
+            && (m["csp_blocked_injected_script"] as? Bool) == true
         exit(ok ? 0 : 1)
     }
 
@@ -54,13 +70,19 @@ enum SelfTest {
 
             stage = "probe"
             let probe = """
+            await new Promise(r => setTimeout(r, 600));   // let injected onerror handlers fire if they can
+            let evalBlocked = false;
+            try { (0, eval)('1'); } catch (e) { evalBlocked = true; }   // control: CSP is really applied
+
             const p = document.getElementById('preview');
             const maths = Array.from(p.querySelectorAll('math'));
             let nz = 0;
             for (const m of maths) { const r = m.getBoundingClientRect(); if (r.width > 0 && r.height > 0) nz++; }
             const st = window.__mdstudio.getState();
             return { tables: p.querySelectorAll('table').length,
-                     math: maths.length, nonzero: nz, text: st.text, name: st.name };
+                     math: maths.length, nonzero: nz, text: st.text, name: st.name,
+                     evalBlocked: evalBlocked,
+                     injected: (typeof window.__pwned_script !== 'undefined') || (typeof window.__pwned_onerror !== 'undefined') };
             """
             let v: Any? = try await withCheckedThrowingContinuation { cont in
                 wc.call(probe) { cont.resume(with: $0) }
@@ -71,9 +93,14 @@ enum SelfTest {
             let opened = (info["text"] as? String) == norm && (info["name"] as? String) == input.lastPathComponent
             let math = (info["math"] as? Int) ?? -1
             let nonzero = (info["nonzero"] as? Int) ?? -2
+            // A document that looks like math / a table must actually render some (guards a vacuous pass).
+            expectMath = raw.contains("$")
+            expectTables = raw.range(of: #"\|\s*:?-{3,}"#, options: .regularExpression) != nil
             result = [("opened", opened), ("rendered_tables", (info["tables"] as? Int) ?? -1),
                       ("rendered_math", math), ("math_nonzero_boxes", nonzero),
-                      ("saved_bytes_match", false), ("dirty_after_edit", false)]
+                      ("saved_bytes_match", false), ("dirty_after_edit", false),
+                      ("csp_active", (info["evalBlocked"] as? Bool) ?? false),
+                      ("csp_blocked_injected_script", (info["injected"] as? Bool) == false)]
 
             stage = "edit"
             let _: Any? = try await withCheckedThrowingContinuation { cont in

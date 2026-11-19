@@ -218,7 +218,7 @@ Memory, measured on macOS 27 with `demo.md` open, about 5 s after `open -a`:
 - By `footprint` (phys_footprint): about 126 MB total. App 31 + WebContent 71 + GPU 17 + Networking 7.5.
 - By `ps -o rss`: about 197 MB total. App 104 + WebContent 54 + GPU 26 + Networking 12.
 
-Status: the headless selftest passes (open, render, edit, save). The window, Finder, drag and print paths still need a manual pass on a logged-in desktop. Known limits: CRLF files save back as LF, unsaved edits are lost on a crash, and relative images load only from the document's folder and below. The shortcut table and bridge notes are in [`macos/README.md`](macos/README.md).
+Status: the headless selftest passes (open, render, edit, save) and the window was checked by hand on a real desktop. Finder Open With, drag-drop and print have not been exercised by hand yet. Known limits: CRLF files save back as LF, unsaved edits are lost on a crash (including a web-content process crash, which reloads the last saved text), and relative images load only from the document's folder and below. The shortcut table and bridge notes are in [`macos/README.md`](macos/README.md).
 
 ---
 
